@@ -212,6 +212,38 @@ Approve YouTube as the version 1 music provider.
 
 ---
 
+## Entry 5: Repository workflow skill
+
+**Date:** 2026-06-21  
+**Stage:** Workflow setup  
+**AI tool:** Codex  
+**Model:** GPT-5  
+**Agent role:** Implementer
+
+### Task
+
+Create a repository-scoped skill to guide Codex through MoodFlow phase work.
+
+### Files or changes produced
+
+Created:
+
+- `.agents/skills/moodflow-phase-workflow/SKILL.md`
+
+### Verification and tests
+
+Verified that only the skill folder and `SKILL.md` were created. No tests were run because this was a documentation/workflow-only change.
+
+### Evaluation
+
+The skill instructs Codex to read `docs/`, work one phase at a time, respect implementer/tester/reviewer roles, list planned edits, verify against acceptance criteria, update this log, and stop after the assigned role is complete.
+
+### Human decision
+
+Approve the repository-scoped workflow skill.
+
+---
+
 ## Template for future entries
 
 ## Entry N: [Activity name]
