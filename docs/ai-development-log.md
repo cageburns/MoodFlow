@@ -1008,6 +1008,246 @@ Phase 2 may be closed. Do not begin Phase 3 until separately assigned.
 
 ---
 
+## Entry 18: Phase 3 recommendation rules blocked pending test execution
+
+**Date:** 2026-06-21
+**Stage:** Phase 3: Recommendation Rules
+**AI tool:** Codex
+**Model:** GPT-5
+**Agent role:** Implementer
+
+### Task
+
+Implement deterministic recommendation rules for supported moods, match and shift modes, intensity and energy influence, search-ready terms, exclusions, ranking hints, and controlled validation.
+
+### Representative prompts or decisions
+
+The recommendation rules were implemented as a pure backend service. The module uses explicit mapping tables for supported moods, intensity bands, energy bands, exclusion terms, and later ranking hints. It does not call YouTube, read environment variables, use mood-note text, or perform external integration work.
+
+### Files or changes produced
+
+Created:
+
+- `src/services/recommendation.service.js`
+- `tests/recommendation.test.js`
+
+Updated:
+
+- `docs/ai-development-log.md`
+
+### Verification and tests
+
+Checks run:
+
+- `git diff --check -- src\services\recommendation.service.js tests\recommendation.test.js docs\ai-development-log.md` -> passed
+- Phase 3 source scan for network, environment, and secret access -> no `fetch`, HTTP calls, `YOUTUBE_API_KEY`, `process.env`, or `.env` access found
+
+Attempted test commands:
+
+- `npm test` with approval outside the sandbox -> blocked by the approval system because the session hit a usage-limit condition
+- `npm test` inside the sandbox -> failed before tests ran with `EPERM: operation not permitted, lstat 'C:\Users\Kelly'`
+
+### Problems or corrections
+
+The implementation could not be fully verified in this turn because the test suite could not be executed through an approved runtime path. The code and tests are present, but Phase 3 should not be considered ready for tester handoff until `npm test` can be run successfully.
+
+### Acceptance-criteria status
+
+Implemented in code but not execution-verified:
+
+- every supported mood has deterministic `match` behaviour
+- every valid `shift` target produces deterministic output
+- intensity and energy affect output through explicit bands
+- note text is ignored
+- recommendation rules remain independent of YouTube code
+- invalid input is rejected through controlled validation
+
+Not passed yet:
+
+- all relevant automated tests pass
+
+### Evaluation
+
+Phase 3 implementation is blocked pending a successful test-suite run.
+
+### Human decision
+
+Pending. Run the test suite when the runtime/approval limitation is resolved, then continue Phase 3 verification before tester handoff.
+
+---
+
+## Entry 19: Phase 3 independent testing
+
+**Date:** 2026-06-21
+**Stage:** Phase 3: Recommendation Rules
+**AI tool:** Codex
+**Model:** GPT-5.3-Codex
+**Agent role:** Tester
+
+### Task
+
+Independently test the completed Phase 3 recommendation-rules implementation without starting Phase 4.
+
+### Files or changes produced
+
+Updated:
+
+- `tests/recommendation.test.js`
+- `docs/ai-development-log.md`
+
+Inspected:
+
+- `.codex/agents/tester.toml`
+- `.agents/skills/moodflow-phase-workflow/SKILL.md`
+- `docs/project-plan.md`
+- `docs/requirements.md`
+- `docs/architecture.md`
+- `src/services/recommendation.service.js`
+- `src/services/mood.service.js`
+- `src/routes/moods.routes.js`
+- existing Phase 1 and Phase 2 tests
+
+### Verification and tests
+
+Commands and checks run:
+
+- source scan under `src/` for early Phase 4 features (`youtube`, `music-search`, `player`, `charts`, `iframe`) -> no early Phase 4 implementation files found
+- `npm test` baseline -> 25 passed, 0 failed
+- expanded deterministic and boundary coverage in `tests/recommendation.test.js`
+- `npm test` after test updates -> 27 passed, 0 failed
+
+Phase 3 verification completed:
+
+- every supported mood has deterministic `match` behavior
+- every valid `shift` source-target pair produces deterministic output
+- intensity and energy band boundaries are tested at 1, 3, 4, 7, 8, and 10
+- shift-specific intensity transition terms are verified
+- identical valid input returns identical output
+- note text is never present in recommendation profile output
+- recommendation module performs no network request (`globalThis.fetch` trap test)
+- invalid inputs return `VALIDATION_ERROR` with predictable field-level details
+- recommendation logic is isolated from YouTube integration
+- no YouTube/player/charts/Phase 4 implementation was added early
+
+### Problems or corrections
+
+No Phase 3 defects were found.
+
+The recommendation test suite was strengthened to add explicit deterministic `match` checks and boundary-based matrix coverage for intensity and energy influence.
+
+### Acceptance-criteria status
+
+Passed:
+
+- all supported moods are covered
+- identical input produces identical output
+- `match` and `shift` are meaningfully different
+- high and low energy affect profile output
+- recommendation module performs no network request
+- automated tests provide meaningful full-matrix coverage for supported moods and valid shift targets
+- all relevant tests pass
+
+Not in scope by design:
+
+- YouTube search/cleaning/caching
+- embedded player behavior
+- charts and history visualization
+- any Phase 4 and later implementation
+
+### Evaluation
+
+Phase 3 passed independent testing and is ready for reviewer evaluation.
+
+### Human decision
+
+Pending reviewer evaluation. Do not begin Phase 4 until separately assigned.
+
+---
+
+## Entry 20: Phase 3 independent retest (strict criteria)
+
+**Date:** 2026-06-21
+**Stage:** Phase 3: Recommendation Rules
+**AI tool:** Codex
+**Model:** GPT-5.3-Codex
+**Agent role:** Tester
+
+### Task
+
+Run an independent strict-criteria Phase 3 test pass focused on deterministic recommendation behavior, full supported mood/mode coverage, input validation predictability, note-privacy guarantees, and separation from YouTube integration.
+
+### Files or changes produced
+
+Updated:
+
+- `tests/recommendation.test.js`
+- `docs/ai-development-log.md`
+
+Inspected:
+
+- `.codex/agents/tester.toml`
+- `.agents/skills/moodflow-phase-workflow/SKILL.md`
+- `docs/project-plan.md`
+- `docs/requirements.md`
+- `docs/architecture.md`
+- `src/services/recommendation.service.js`
+- `src/services/mood.service.js`
+- `src/routes/moods.routes.js`
+
+### Verification and tests
+
+Commands and checks run:
+
+- `npm test` -> **27 passed, 0 failed**
+- `Get-ChildItem src/services` -> only `mood.service.js`, `recommendation.service.js`
+- `Get-ChildItem src/routes` -> only `moods.routes.js`
+- source scan under `src/**` for `youtube|chart|player|cache|music-search|suggestions` -> no early Phase 4 implementation modules found (only rule text term `provided to youtube` inside recommendation hints)
+
+Added test coverage in `tests/recommendation.test.js` for:
+
+- deterministic `match` output per supported mood across repeated calls;
+- deterministic `shift` output for all valid source-target pairs;
+- intensity and energy boundary mapping checks at 1, 3, 4, 7, 8, and 10;
+- invalid mode (`blend`) rejection;
+- unsupported shift target rejection;
+- explicit note-leak checks across `reason`, `moodTerms`, `intensityTerms`, `energyTerms`, `styleTerms`, `excludeTerms`, and `rankingHints` fields.
+
+### Problems or corrections
+
+No defects found in Phase 3 recommendation implementation.
+
+Only test improvements were needed to satisfy stricter acceptance-verification depth.
+
+### Acceptance-criteria status
+
+Verified as passed:
+
+- all supported moods are covered (`happy`, `calm`, `sad`, `anxious`, `angry`, `tired`, `focused`, `overwhelmed`)
+- every supported mood has deterministic `match` behaviour
+- every valid `shift` target produces deterministic output
+- intensity affects profile output as documented
+- energy affects profile output as documented
+- identical valid input always produces identical output
+- `shift` requires a valid target mood
+- target mood must differ from current mood
+- invalid moods, modes, intensity values, energy values, and target moods are rejected predictably
+- note text is not included in recommendation output or profile-derived search/ranking fields
+- recommendation rules remain separate from YouTube integration
+- no live YouTube calls were made
+- full mood and mode matrix has meaningful automated coverage
+- no player, chart, caching, or other Phase 4 work was added early
+- all relevant tests pass
+
+### Evaluation
+
+Phase 3 passed independent strict-criteria testing and is ready for reviewer handoff.
+
+### Human decision
+
+Pending reviewer evaluation. Do not begin Phase 4 until separately assigned.
+
+---
+
 ## Template for future entries
 
 ## Entry N: [Activity name]
