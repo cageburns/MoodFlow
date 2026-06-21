@@ -1,0 +1,16 @@
+{
+  "name": "moodflow",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Local single-user mood logging and music discovery app.",
+  "scripts": {
+    "start": "node src/server.js",
+    "test": "node --test"
+  },
+  "dependencies": {
+    "better-sqlite3": "^12.11.1",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2"
+  }
+}

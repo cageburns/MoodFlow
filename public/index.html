@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>MoodFlow</title>
+    <link rel="stylesheet" href="/css/styles.css">
+    <script type="module" src="/js/app.js"></script>
+  </head>
+  <body>
+    <main class="shell">
+      <section class="intro" aria-labelledby="page-title">
+        <p class="eyebrow">MoodFlow</p>
+        <h1 id="page-title">Local mood logging and music discovery</h1>
+        <p id="health-status" class="status" role="status">Checking server status...</p>
+      </section>
+
+      <section class="workspace" aria-label="Mood entry workspace">
+        <form id="mood-form" class="mood-form">
+          <div class="field">
+            <label for="mood">Current mood</label>
+            <select id="mood" name="mood" required>
+              <option value="">Choose mood</option>
+            </select>
+          </div>
+
+          <div class="field-grid">
+            <div class="field">
+              <label for="intensity">Intensity</label>
+              <input id="intensity" name="intensity" type="number" min="1" max="10" value="5" required>
+            </div>
+            <div class="field">
+              <label for="energy">Energy</label>
+              <input id="energy" name="energy" type="number" min="1" max="10" value="5" required>
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="note">Note</label>
+            <textarea id="note" name="note" maxlength="300" rows="4"></textarea>
+          </div>
+
+          <fieldset class="mode-group">
+            <legend>Music mode</legend>
+            <label>
+              <input type="radio" name="musicMode" value="match" checked>
+              Match my mood
+            </label>
+            <label>
+              <input type="radio" name="musicMode" value="shift">
+              Help shift my mood
+            </label>
+          </fieldset>
+
+          <div class="field" data-target-mood-group hidden>
+            <label for="targetMood">Target mood</label>
+            <select id="targetMood" name="targetMood">
+              <option value="">Choose target mood</option>
+            </select>
+          </div>
+
+          <button type="submit">Save mood entry</button>
+          <p id="form-status" class="status" role="status"></p>
+        </form>
+
+        <section aria-labelledby="history-title">
+          <h2 id="history-title">Recent entries</h2>
+          <div id="history-list" class="history-list"></div>
+        </section>
+      </section>
+    </main>
+  </body>
+</html>

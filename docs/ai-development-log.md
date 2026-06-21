@@ -529,6 +529,485 @@ Phase 0 may be closed with notes. Do not begin Phase 1 until separately assigned
 
 ---
 
+## Entry 12: Phase 1 application foundation
+
+**Date:** 2026-06-21
+**Stage:** Phase 1: Application Foundation
+**AI tool:** Codex
+**Model:** GPT-5
+**Agent role:** Implementer
+
+### Task
+
+Implement Phase 1 only: initialize the Node.js and Express foundation, add environment loading, serve a minimal static page, expose the health endpoint, configure the test runner, preserve local secret safety, and stop before Phase 2 features.
+
+### Representative prompts or decisions
+
+The parent/orchestrator requested the configured implementer agent for Phase 1. No callable subagent-spawn tool was available in the session, so the phase was implemented directly under the implementer configuration and `moodflow-phase-workflow` rules.
+
+Phase 1 intentionally did not implement mood logging, SQLite persistence, recommendations, YouTube integration, charts, or embedded playback.
+
+### Files or changes produced
+
+Created:
+
+- `package.json`
+- `package-lock.json`
+- `.env.example`
+- `data/.gitkeep`
+- `src/app.js`
+- `src/server.js`
+- `src/config.js`
+- `src/middleware/error-handler.js`
+- `public/index.html`
+- `public/css/styles.css`
+- `public/js/app.js`
+- `tests/health.test.js`
+
+Updated:
+
+- `docs/ai-development-log.md`
+
+### Verification and tests
+
+Commands and checks run:
+
+- `npm install` -> installed Express and dotenv, created `package-lock.json`, 0 vulnerabilities
+- `npm test` -> 4 tests passed, 0 failed
+- temporary `node src/server.js` smoke check with `PORT=3101` and `DATABASE_PATH=./data/moodflow.sqlite` -> process started, `/api/health` returned `ok`, home page returned HTTP 200 and contained `MoodFlow`
+- `node src/server.js` without `DATABASE_PATH` -> exited with code 1 and clear message: `Missing required environment configuration: DATABASE_PATH. Create a local .env file from .env.example.`
+- `npm start` with temporary environment configuration -> server startup output confirmed `MoodFlow listening on http://localhost:3103`
+- `git check-ignore .env node_modules/ data/example.sqlite` -> all three paths ignored
+- `git check-ignore data/.gitkeep` -> not ignored, so the data folder placeholder can be tracked
+- non-ignored file secret scan -> local YouTube API key value not found
+- `git diff --check` -> passed with an LF-to-CRLF warning for an existing agent config file
+
+### Problems or corrections
+
+The sandbox blocked Node and npm from resolving a user-profile path, so `npm install`, `npm test`, and server startup checks were rerun with approval outside the sandbox.
+
+A stray empty root-level `middleware` directory was created while making the intended `src/middleware` directory and was removed before completion.
+
+### Acceptance-criteria status
+
+Passed:
+
+- one documented command starts the server: `npm start`, with local environment configuration present
+- the home page loads
+- `/api/health` returns HTTP 200 with `{ "status": "ok" }`
+- the initial test command passes
+- missing required environment configuration produces a clear startup message
+- `.env`, SQLite files, and `node_modules/` remain ignored
+- the local YouTube API key was not printed, logged, or found in non-ignored files
+
+Not implemented by design:
+
+- Phase 2 and later features, including mood logging, recommendations, YouTube integration, charts, and playback
+
+### Evaluation
+
+Phase 1 implementation is ready for independent testing.
+
+### Human decision
+
+Pending tester and reviewer evaluation. Do not begin Phase 2 until separately assigned.
+
+---
+
+## Entry 13: Phase 1 independent testing
+
+**Date:** 2026-06-21
+**Stage:** Phase 1: Application Foundation
+**AI tool:** Codex
+**Model:** GPT-5
+**Agent role:** Tester
+
+### Task
+
+Independently test the completed Phase 1 foundation implementation without beginning Phase 2.
+
+### Files or changes produced
+
+Updated:
+
+- `docs/ai-development-log.md`
+
+Inspected:
+
+- `.codex/agents/tester.toml`
+- `.agents/skills/moodflow-phase-workflow/SKILL.md`
+- `docs/project-plan.md`
+- `docs/requirements.md`
+- `docs/architecture.md`
+- `package.json`
+- `package-lock.json`
+- `.env.example`
+- `.gitignore`
+- `src/app.js`
+- `src/server.js`
+- `src/config.js`
+- `src/middleware/error-handler.js`
+- `public/index.html`
+- `public/css/styles.css`
+- `public/js/app.js`
+- `tests/health.test.js`
+- `data/.gitkeep`
+
+### Verification and tests
+
+Commands and checks run:
+
+- `npm ls --depth=0` -> installed dependencies are `dotenv` and `express`
+- `npm test` -> 4 tests passed, 0 failed
+- temporary `npm start` with `PORT=3111` and `DATABASE_PATH=./data/moodflow.sqlite` -> startup output confirmed `MoodFlow listening on http://localhost:3111`
+- temporary `node src/server.js` with `PORT=3112` and `DATABASE_PATH=./data/moodflow.sqlite` -> process started, `/api/health` returned HTTP 200 with `ok`, `/` returned HTTP 200 and contained `MoodFlow`, and an unknown route returned HTTP 404
+- `node src/server.js` without `DATABASE_PATH` -> exited with code 1 and clear missing-configuration message
+- `git check-ignore .env node_modules/ data/example.sqlite` -> all three paths ignored
+- `git ls-files .env` -> no output
+- `git status --ignored --short .env` -> `!! .env`
+- non-ignored file secret scan -> local YouTube API key value not found
+- Phase 2 file-name scan under `src/` -> no mood, music, YouTube, recommendation, chart, repository, schema, or database modules found
+- `git diff --check` -> passed with LF-to-CRLF warnings for `.codex/agents/implementer.toml` and this log file
+
+The local API key was never printed or logged.
+
+### Problems or corrections
+
+No defects were found. The tester did not create or change test files because the existing Phase 1 tests cover the required foundation behaviours.
+
+Node and npm commands that touch the installed runtime were run with approval outside the sandbox because the sandbox blocks Node from resolving a user-profile path.
+
+### Acceptance-criteria status
+
+Passed:
+
+- Node.js project setup is valid and uses ES modules.
+- Express and dotenv are installed and justified by the Phase 1 architecture.
+- `npm start` starts the server when required environment configuration is provided.
+- the static frontend page is served.
+- `/api/health` returns HTTP 200.
+- environment variables are loaded safely and missing required configuration fails clearly.
+- `.env` remains ignored and untracked.
+- no secret values were found in non-ignored files.
+- run and test scripts work.
+- all Phase 1 tests pass.
+- no Phase 2 or later features were implemented.
+- the implementation follows the documented Phase 1 architecture and acceptance criteria.
+
+### Evaluation
+
+Phase 1 passed independent testing and is ready for reviewer evaluation.
+
+### Human decision
+
+Pending reviewer evaluation. Do not begin Phase 2 until separately assigned.
+
+---
+
+## Entry 14: Phase 1 review
+
+**Date:** 2026-06-21
+**Stage:** Phase 1: Application Foundation
+**AI tool:** Codex
+**Model:** GPT-5
+**Agent role:** Reviewer
+
+### Task
+
+Perform a read-only review of the completed Phase 1 foundation implementation and tester evidence.
+
+### Evidence inspected
+
+- Phase 1 implementation files
+- `docs/project-plan.md`
+- `docs/requirements.md`
+- `docs/architecture.md`
+- `docs/ai-development-log.md`
+- tester result: `TESTER STATUS: PASSED - READY FOR REVIEWER`
+
+### Read-only checks
+
+- `npm ls --depth=0` -> `dotenv`, `express`
+- `npm test` -> 4 passed, 0 failed
+- `.env`, `node_modules/`, and SQLite ignore checks passed
+- `.env` is not tracked
+- non-ignored secret scan found 0 matches
+- Phase 2 scope scan found no later-phase modules
+- `git diff --check` passed with LF-to-CRLF warnings only
+
+### Findings
+
+No blocking, important, or minor findings.
+
+### Acceptance-criteria status
+
+All Phase 1 acceptance criteria are satisfied.
+
+### Verdict
+
+Approved. Phase 1 is ready to close.
+
+### Human decision
+
+Phase 1 may be closed. Do not begin Phase 2 until separately assigned.
+
+---
+
+## Entry 15: Phase 2 mood persistence and form
+
+**Date:** 2026-06-21
+**Stage:** Phase 2: Mood Persistence and Form
+**AI tool:** Codex
+**Model:** GPT-5
+**Agent role:** Implementer
+
+### Task
+
+Implement Phase 2 only: SQLite schema and initialization, parameterized mood repository functions, server-side mood validation, `POST /api/moods`, `GET /api/moods`, mood-entry form behavior, recent mood history, and automated tests.
+
+### Representative prompts or decisions
+
+The database location remains `DATABASE_PATH`, with the expected local default documented in `.env.example` as `./data/moodflow.sqlite`. The schema follows `docs/architecture.md` and is stored in `src/data/schema.sql`.
+
+`better-sqlite3` was added as the SQLite driver because Phase 2 requires local SQLite persistence and parameterized SQL.
+
+Phase 2 intentionally did not implement recommendation logic, YouTube integration, charts, embedded playback, or Phase 3 features.
+
+### Files or changes produced
+
+Created:
+
+- `src/data/schema.sql`
+- `src/data/db.js`
+- `src/data/mood.repository.js`
+- `src/services/mood.service.js`
+- `src/routes/moods.routes.js`
+- `public/js/api.js`
+- `public/js/history.js`
+- `public/js/mood-form.js`
+- `tests/mood-validation.test.js`
+- `tests/mood-repository.test.js`
+- `tests/mood-api.test.js`
+
+Updated:
+
+- `package.json`
+- `package-lock.json`
+- `src/app.js`
+- `src/server.js`
+- `src/middleware/error-handler.js`
+- `public/index.html`
+- `public/css/styles.css`
+- `public/js/app.js`
+- `docs/ai-development-log.md`
+
+### Verification and tests
+
+Commands and checks run:
+
+- `npm install better-sqlite3` -> installed SQLite dependency, 0 vulnerabilities; npm reported a deprecation warning for a transitive `prebuild-install` package
+- `npm test` -> 16 tests passed, 0 failed
+- temporary `node src/server.js` smoke check with a temporary SQLite path -> process started, valid mood entry saved, `GET /api/moods` returned the saved entry newest first, invalid mood returned HTTP 400, and the temporary database file was created
+- raw JSON timestamp check -> created mood response included a UTC `createdAt` value ending in `Z`
+- `npm ls --depth=0` -> `better-sqlite3`, `dotenv`, and `express`
+- `git check-ignore .env node_modules/ data/example.sqlite` -> all three paths ignored
+- `git ls-files .env` -> no output
+- non-ignored file secret scan -> local YouTube API key value not found
+- `git diff --check` -> passed with LF-to-CRLF warnings for `.codex/agents/implementer.toml` and this log file
+
+### Problems or corrections
+
+Node and npm commands that touch the installed runtime were run with approval outside the sandbox because the sandbox blocks Node from resolving a user-profile path.
+
+The first local server smoke check parsed the response timestamp as a PowerShell `DateTime`, so a follow-up raw JSON check was run to verify the UTC `Z` suffix directly.
+
+### Acceptance-criteria status
+
+Passed:
+
+- valid entries are saved
+- invalid mood values are rejected
+- intensity and energy outside 1 to 10 are rejected
+- notes longer than 300 characters are rejected
+- `shift` requires a different target mood
+- `match` rejects a target mood
+- timestamps are created in UTC and displayed in browser-local time
+- recent entries appear newest first
+- all relevant tests pass
+- `.env`, SQLite files, and `node_modules/` remain ignored
+- no secret values were printed, logged, or found in non-ignored files
+
+Not implemented by design:
+
+- recommendation logic
+- YouTube integration
+- charts
+- embedded playback
+- Phase 3 and later features
+
+### Evaluation
+
+Phase 2 implementation is ready for independent testing.
+
+### Human decision
+
+Pending tester and reviewer evaluation. Do not begin Phase 3 until separately assigned.
+
+---
+
+## Entry 16: Phase 2 independent testing
+
+**Date:** 2026-06-21
+**Stage:** Phase 2: Mood Persistence and Form
+**AI tool:** Codex
+**Model:** GPT-5
+**Agent role:** Tester
+
+### Task
+
+Independently test the completed Phase 2 mood persistence and form implementation without beginning Phase 3.
+
+### Files or changes produced
+
+Created:
+
+- `tests/mood-frontend.test.js`
+
+Updated:
+
+- `docs/ai-development-log.md`
+
+Inspected:
+
+- `.codex/agents/tester.toml`
+- `.agents/skills/moodflow-phase-workflow/SKILL.md`
+- `docs/project-plan.md`
+- `docs/requirements.md`
+- `docs/architecture.md`
+- `src/data/schema.sql`
+- `src/data/db.js`
+- `src/data/mood.repository.js`
+- `src/services/mood.service.js`
+- `src/routes/moods.routes.js`
+- `public/index.html`
+- `public/js/api.js`
+- `public/js/history.js`
+- `public/js/mood-form.js`
+- Phase 2 backend tests
+
+### Verification and tests
+
+Commands and checks run:
+
+- `npm test` -> 18 tests passed, 0 failed
+- temporary `node src/server.js` smoke check with a temporary SQLite path -> process started, two valid mood entries saved, `GET /api/moods` returned newest first, six invalid payloads returned HTTP 400, created timestamps used UTC `Z` format, and the temporary database file was created
+- SQLite schema inspection -> required columns and checks for intensity, energy, note length, and music mode were present
+- repository SQL inspection -> insert, lookup, and list queries use prepared statements with placeholders or named parameters
+- frontend unit tests -> target mood controls appear only for `shift`, are disabled for `match`, and recent entries render with browser-local `Intl.DateTimeFormat`
+- early-feature scan under `src/`, `public/`, and `tests/` -> no recommendation, YouTube, chart, player, ranking, or cache feature modules found
+- `git check-ignore .env node_modules/ data/example.sqlite` -> all three paths ignored
+- `git ls-files .env data\*.sqlite` -> no output
+- non-ignored secret scan -> local YouTube API key value not found
+- `npm ls --depth=0` -> installed dependencies are `better-sqlite3`, `dotenv`, and `express`
+- `git diff --check` -> passed with LF-to-CRLF warnings for `.codex/agents/implementer.toml` and this log file
+
+The local API key was not printed, logged, or exposed.
+
+### Problems or corrections
+
+The existing test suite did not directly cover frontend target-mood visibility or browser-local timestamp rendering, so focused frontend unit tests were added.
+
+Node and npm commands that touch the installed runtime were run with approval outside the sandbox because the sandbox blocks Node from resolving a user-profile path.
+
+An accidental temporary scratch file named `-` was created during schema inspection and removed before completion.
+
+### Acceptance-criteria status
+
+Passed:
+
+- SQLite initializes correctly
+- schema matches the documented architecture
+- database queries use parameterized SQL
+- `POST /api/moods` saves valid entries
+- `GET /api/moods` returns entries newest first
+- supported mood values are enforced
+- intensity and energy accept only integers from 1 to 10
+- notes longer than 300 characters are rejected
+- `shift` requires a target mood
+- the target mood must differ from the current mood
+- `match` rejects a target mood
+- timestamps are stored in UTC
+- timestamps are displayed in browser-local time
+- the target-mood field appears only for `shift`
+- recent entries are rendered correctly
+- no recommendation logic, YouTube integration, or charts were added early
+- `.env` and local database files remain ignored and untracked
+- all relevant tests pass
+
+### Evaluation
+
+Phase 2 passed independent testing and is ready for reviewer evaluation.
+
+### Human decision
+
+Pending reviewer evaluation. Do not begin Phase 3 until separately assigned.
+
+---
+
+## Entry 17: Phase 2 review
+
+**Date:** 2026-06-21
+**Stage:** Phase 2: Mood Persistence and Form
+**AI tool:** Codex
+**Model:** GPT-5
+**Agent role:** Reviewer
+
+### Task
+
+Perform a read-only review of the completed Phase 2 implementation and tester evidence.
+
+### Evidence inspected
+
+- Phase 2 implementation files
+- Phase 2 tests
+- `docs/project-plan.md`
+- `docs/requirements.md`
+- `docs/architecture.md`
+- `docs/ai-development-log.md`
+- tester result: `TESTER STATUS: PASSED - READY FOR REVIEWER`
+
+### Read-only checks
+
+- `npm test` -> 18 passed, 0 failed
+- `.env`, `node_modules/`, and SQLite ignore checks passed
+- `.env` and local SQLite files are not tracked
+- SQL uses prepared statements with parameters
+- frontend contains no YouTube API key or backend environment access
+- Phase 3 scope scan found no recommendation, YouTube, chart, player, ranking, cache, or summary modules
+- `git diff --check` passed with LF-to-CRLF warnings only
+
+### Findings
+
+No blocking, important, or minor findings.
+
+### Acceptance-criteria status
+
+All Phase 2 acceptance criteria are satisfied.
+
+### Residual risks
+
+Frontend behavior was verified with deterministic unit tests and source inspection rather than full browser automation. This is acceptable for Phase 2 and can be covered in later end-to-end verification.
+
+### Verdict
+
+Approved. Phase 2 is ready to close.
+
+### Human decision
+
+Phase 2 may be closed. Do not begin Phase 3 until separately assigned.
+
+---
+
 ## Template for future entries
 
 ## Entry N: [Activity name]
