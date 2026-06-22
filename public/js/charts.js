@@ -192,7 +192,7 @@ function chartOptionsForEntries(entries) {
     },
     scales: {
       y: {
-        min: 1,
+        min: 0,
         max: 10,
         ticks: {
           stepSize: 1
@@ -200,14 +200,14 @@ function chartOptionsForEntries(entries) {
       },
       mood: {
         position: "right",
-        min: 1,
+        min: 0,
         max: 8,
         grid: {
           drawOnChartArea: false
         },
         ticks: {
           stepSize: 1,
-          callback: (value) => moodNameForValue(value)
+          callback: (value) => (Number(value) === 0 ? "" : moodNameForValue(value))
         }
       }
     }

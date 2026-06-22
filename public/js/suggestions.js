@@ -38,22 +38,46 @@ function suggestionReason(suggestion) {
   return reason;
 }
 
+function suggestionThumbnail(suggestion) {
+  if (!suggestion.thumbnailUrl) {
+    const placeholder = document.createElement("div");
+    placeholder.className = "suggestion-thumbnail";
+    placeholder.setAttribute?.("aria-hidden", "true");
+    return placeholder;
+  }
+
+  const thumbnail = document.createElement("img");
+  thumbnail.className = "suggestion-thumbnail";
+  thumbnail.src = suggestion.thumbnailUrl;
+  thumbnail.alt = "";
+  thumbnail.loading = "lazy";
+  return thumbnail;
+}
+
 function renderSuggestionCard(suggestion, isSelected, onSelect) {
   const item = document.createElement("article");
   item.className = isSelected ? "suggestion-card is-selected" : "suggestion-card";
+
+  const body = document.createElement("div");
+  body.className = "suggestion-body";
 
   const playButton = document.createElement("button");
   playButton.type = "button";
   playButton.textContent = isSelected ? "Selected" : "Play";
   playButton.addEventListener("click", () => onSelect(suggestion));
 
-  item.append(
+  const actions = document.createElement("div");
+  actions.className = "suggestion-actions";
+  actions.append(playButton, externalLinkForSuggestion(suggestion));
+
+  body.append(
     suggestionTitle(suggestion),
     suggestionMeta(suggestion),
     suggestionReason(suggestion),
-    playButton,
-    externalLinkForSuggestion(suggestion)
+    actions
   );
+
+  item.append(suggestionThumbnail(suggestion), body);
 
   return item;
 }
@@ -126,15 +150,17 @@ export function initializeSuggestions({
       suggestions = result.suggestions || [];
       selectedVideoId = null;
       player?.clearPlayer?.();
-      setText(statusElement, suggestions.length > 0
-        ? "Choose a suggestion to play."
-        : "No acceptable YouTube suggestions were found.");
-      renderSuggestions();
+      setText(statusElement, "");
+      if (suggestions.length > 0) {
+        renderSuggestions();
+      } else {
+        renderEmpty(listElement, "No acceptable YouTube suggestions were found.");
+      }
     } catch (error) {
       suggestions = [];
       selectedVideoId = null;
       player?.clearPlayer?.();
-      setText(statusElement, errorMessage(error));
+      setText(statusElement, "");
       renderEmpty(listElement, errorMessage(error));
     } finally {
       isLoading = false;
@@ -144,7 +170,7 @@ export function initializeSuggestions({
 
   button?.addEventListener("click", requestSuggestions);
   syncButton();
-  renderEmpty(listElement, "Save a mood entry to request music suggestions.");
+  renderEmpty(listElement, "Save a mood to receive music suggestions.");
 
   return {
     setMoodEntry(entry) {
@@ -152,8 +178,8 @@ export function initializeSuggestions({
       suggestions = [];
       selectedVideoId = null;
       player?.clearPlayer?.();
-      setText(statusElement, "Ready to request music suggestions for the saved mood entry.");
-      renderEmpty(listElement, "No suggestions requested yet.");
+      setText(statusElement, "");
+      renderEmpty(listElement, "Save a mood to receive music suggestions.");
       syncButton();
     },
 

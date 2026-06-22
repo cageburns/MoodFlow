@@ -178,9 +178,7 @@ export function initializeHistory({
         statusElement: chartStatusElement,
         ChartConstructor
       });
-      setText(statusElement, historyResult.entries.length > 0
-        ? "Showing selected history period."
-        : emptyMessage);
+      setText(statusElement, historyResult.entries.length > 0 ? "" : emptyMessage);
     } finally {
       isLoading = false;
       if (pendingReload) {

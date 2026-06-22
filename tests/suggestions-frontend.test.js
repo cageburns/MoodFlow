@@ -16,6 +16,10 @@ class TestElement {
     this.target = "";
     this.rel = "";
     this.type = "";
+    this.src = "";
+    this.alt = "";
+    this.loading = "";
+    this.attributes = {};
     this.listeners = {};
   }
 
@@ -31,17 +35,21 @@ class TestElement {
     this.listeners[eventName] = handler;
   }
 
+  setAttribute(name, value) {
+    this.attributes[name] = value;
+  }
+
   click() {
     this.listeners.click?.();
   }
 }
 
-function createSuggestion(videoId, title = "Song Official Video") {
+function createSuggestion(videoId, title = "Song Official Video", thumbnailUrl = null) {
   return {
     videoId,
     title,
     channelTitle: "ArtistVEVO",
-    thumbnailUrl: null,
+    thumbnailUrl,
     youtubeUrl: `https://www.youtube.com/watch?v=${videoId}`,
     reason: "Selected to match calm with medium intensity and medium energy."
   };
@@ -126,10 +134,10 @@ describe("Phase 5 suggestions frontend behavior", () => {
     await button.listeners.click();
     assert.deepEqual(requestedBody, { moodEntryId: 42 });
     assert.equal(listElement.children.length, 2);
-    assert.equal(statusElement.textContent, "Choose a suggestion to play.");
+    assert.equal(statusElement.textContent, "");
 
     const firstCard = listElement.children[0];
-    const playButton = firstCard.children[3];
+    const playButton = firstCard.children[1].children[3].children[0];
     playButton.click();
 
     assert.deepEqual(played, ["first"]);
@@ -170,8 +178,8 @@ describe("Phase 5 suggestions frontend behavior", () => {
 
     controller.setMoodEntry({ id: 9 });
     await button.listeners.click();
-    listElement.children[0].children[3].click();
-    listElement.children[1].children[3].click();
+    listElement.children[0].children[1].children[3].children[0].click();
+    listElement.children[1].children[1].children[3].children[0].click();
 
     assert.deepEqual(played, ["first", "second"]);
     assert.doesNotMatch(listElement.children[0].className, /is-selected/);
@@ -240,7 +248,7 @@ describe("Phase 5 suggestions frontend behavior", () => {
     controller.setMoodEntry({ id: 7 });
     await button.listeners.click();
 
-    assert.equal(statusElement.textContent, "Music suggestions are temporarily unavailable.");
+    assert.equal(statusElement.textContent, "");
     assert.equal(listElement.children[0].textContent, "Music suggestions are temporarily unavailable.");
   });
 
@@ -261,9 +269,34 @@ describe("Phase 5 suggestions frontend behavior", () => {
     controller.setMoodEntry({ id: 7 });
     await button.listeners.click();
 
-    const link = listElement.children[0].children[4];
+    const link = listElement.children[0].children[1].children[3].children[1];
     assert.equal(link.href, "https://www.youtube.com/watch?v=abc123");
     assert.equal(link.target, "_blank");
     assert.equal(link.rel, "noopener noreferrer");
+  });
+
+  it("renders suggestion thumbnails when YouTube metadata includes one", async () => {
+    installDocument();
+    globalThis.fetch = async () => successResponse({
+      suggestions: [createSuggestion("abc123", "Song Official Video", "https://example.invalid/thumb.jpg")]
+    });
+    const button = new TestElement("button");
+    const listElement = new TestElement("div");
+    const controller = initializeSuggestions({
+      button,
+      listElement,
+      statusElement: new TestElement("p"),
+      player: { clearPlayer() {}, playSuggestion() {} }
+    });
+
+    controller.setMoodEntry({ id: 7 });
+    await button.listeners.click();
+
+    const thumbnail = listElement.children[0].children[0];
+    assert.equal(thumbnail.tagName, "img");
+    assert.equal(thumbnail.className, "suggestion-thumbnail");
+    assert.equal(thumbnail.src, "https://example.invalid/thumb.jpg");
+    assert.equal(thumbnail.alt, "");
+    assert.equal(thumbnail.loading, "lazy");
   });
 });

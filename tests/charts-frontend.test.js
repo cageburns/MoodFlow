@@ -153,7 +153,13 @@ describe("Phase 6 chart frontend behavior", () => {
     assert.equal(statusElement.textContent, "Mood, intensity, and energy trend for selected period.");
     assert.equal(config.type, "bar");
     assert.deepEqual(config.data.datasets.map((dataset) => dataset.type), ["line", "line", "bar"]);
+    assert.equal(config.options.scales.y.min, 0);
+    assert.equal(config.options.scales.y.max, 10);
     assert.equal(config.data.datasets[2].yAxisID, "mood");
+    assert.equal(config.options.scales.mood.min, 0);
+    assert.equal(config.options.scales.mood.max, 8);
+    assert.equal(config.options.scales.mood.ticks.callback(0), "");
+    assert.equal(config.options.scales.mood.ticks.callback(1), "sad");
     assert.equal(config.options.scales.mood.ticks.callback(6), "focused");
     assert.equal(config.options.scales.mood.ticks.callback(4), "anxious");
     assert.equal(
@@ -206,9 +212,12 @@ describe("Phase 6 chart frontend behavior", () => {
 
     const moodDataset = charts[0].config.data.datasets[2];
     assert.equal(moodDataset.minBarLength, 6);
+    assert.equal(MOOD_CHART_VALUES.sad, 1);
     assert.equal(moodDataset.data[0].y, MOOD_CHART_VALUES.sad);
     assert.equal(moodDataset.data[0].mood, "sad");
     assert.notEqual(moodDataset.data[0].y, null);
+    assert.equal(charts[0].config.options.scales.mood.min, 0);
+    assert.equal(charts[0].config.options.scales.mood.max, 8);
     assert.equal(charts[0].config.options.scales.mood.ticks.callback(MOOD_CHART_VALUES.sad), "sad");
     assert.equal(
       charts[0].config.options.plugins.tooltip.callbacks.label({
