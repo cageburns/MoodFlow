@@ -11,7 +11,11 @@ const historyController = initializeHistory({
   listElement: document.querySelector("#history-list"),
   statusElement: document.querySelector("#history-status"),
   chartCanvas: document.querySelector("#history-chart"),
-  chartStatusElement: document.querySelector("#chart-status")
+  chartStatusElement: document.querySelector("#chart-status"),
+  autoLoad: true,
+  onLoadError: () => {
+    document.querySelector("#history-status").textContent = "History could not be loaded.";
+  }
 });
 const suggestionsController = initializeSuggestions({
   button: document.querySelector("#suggestions-button"),
@@ -44,17 +48,19 @@ async function loadRecentEntries() {
 }
 
 showHealthStatus();
-loadRecentEntries().catch(() => {
-  document.querySelector("#history-status").textContent = "Recent entries could not be loaded.";
-});
 
 initializeMoodForm({
   form: moodForm,
   statusElement: formStatusElement,
-  onSaved: (entry) => {
+  onSaved: async (entry) => {
     suggestionsController.setMoodEntry(entry);
-    loadRecentEntries().catch(() => {
+    const [historyResult] = await Promise.allSettled([
+      loadRecentEntries(),
+      suggestionsController.requestSuggestions()
+    ]);
+
+    if (historyResult.status === "rejected") {
       formStatusElement.textContent = "Mood entry saved, but recent entries could not be refreshed.";
-    });
+    }
   }
 });

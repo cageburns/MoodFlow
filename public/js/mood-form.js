@@ -75,6 +75,15 @@ export function initializeMoodForm({ form, statusElement, onSaved }) {
     return;
   }
 
+  const submitButton = form.querySelector?.("button[type='submit']");
+  let isSubmitting = false;
+
+  function syncSubmitButton() {
+    if (submitButton) {
+      submitButton.disabled = isSubmitting;
+    }
+  }
+
   populateMoodSelects(form);
   syncTargetMood(form);
 
@@ -86,6 +95,12 @@ export function initializeMoodForm({ form, statusElement, onSaved }) {
 
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
+    if (isSubmitting) {
+      return;
+    }
+
+    isSubmitting = true;
+    syncSubmitButton();
     showMessage(statusElement, "Saving mood entry...");
 
     try {
@@ -96,10 +111,22 @@ export function initializeMoodForm({ form, statusElement, onSaved }) {
 
       form.reset();
       syncTargetMood(form);
-      showMessage(statusElement, "Mood entry saved.");
-      onSaved?.(result.entry);
+      showMessage(statusElement, "Mood entry saved. Loading music suggestions...");
+      try {
+        await onSaved?.(result.entry);
+      } catch {
+        showMessage(statusElement, "Mood entry saved.");
+        return;
+      }
+
+      if (statusElement?.textContent === "Mood entry saved. Loading music suggestions...") {
+        showMessage(statusElement, "Mood entry saved.");
+      }
     } catch (error) {
       showMessage(statusElement, error.response?.error?.message || "Mood entry could not be saved.");
+    } finally {
+      isSubmitting = false;
+      syncSubmitButton();
     }
   });
 }

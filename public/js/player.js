@@ -75,6 +75,10 @@ function playerStateMessage(state, windowObject) {
     return "Loading selected suggestion...";
   }
 
+  if (state === states.CUED) {
+    return "Player ready. Press play in the video to start.";
+  }
+
   return null;
 }
 
@@ -86,11 +90,18 @@ export function initializePlayer({
   documentObject = globalThis.document
 } = {}) {
   let player = null;
+  let playerPromise = null;
+  let playerReady = false;
+  let pendingVideoId = null;
   let selectedSuggestion = null;
 
   async function ensurePlayer() {
     if (player) {
       return player;
+    }
+
+    if (playerPromise) {
+      return playerPromise;
     }
 
     if (!container || !windowObject || !documentObject) {
@@ -99,32 +110,65 @@ export function initializePlayer({
     }
 
     setText(statusElement, "Loading YouTube player...");
-    const yt = await loadIframeApi(windowObject, documentObject);
-    player = new yt.Player(container, {
-      width: "100%",
-      height: "100%",
-      playerVars: {
-        origin: windowObject.location?.origin || windowObject.location?.href || ""
-      },
-      events: {
-        onReady: () => {
-          setText(statusElement, selectedSuggestion
-            ? "Player ready."
-            : "Player ready. Choose a suggestion to start playback.");
-        },
-        onStateChange: (event) => {
-          const message = playerStateMessage(event.data, windowObject);
-          if (message) {
-            setText(statusElement, message);
-          }
-        },
-        onError: (event) => {
-          setText(statusElement, playerErrorMessage(event.data));
-        }
-      }
-    });
 
-    return player;
+    playerPromise = loadIframeApi(windowObject, documentObject)
+      .then((yt) => {
+        player = new yt.Player(container, {
+          width: "100%",
+          height: "100%",
+          playerVars: {
+            origin: windowObject.location?.origin || windowObject.location?.href || "",
+            playsinline: 1
+          },
+          events: {
+            onReady: (event) => {
+              playerReady = true;
+
+              if (pendingVideoId) {
+                const videoId = pendingVideoId;
+                pendingVideoId = null;
+                setText(statusElement, "Loading selected suggestion...");
+                (event?.target || player)?.loadVideoById(videoId);
+                return;
+              }
+
+              setText(statusElement, selectedSuggestion
+                ? "Player ready. Press play in the video to start."
+                : "Player ready. Choose a suggestion to start playback.");
+            },
+            onStateChange: (event) => {
+              const message = playerStateMessage(event.data, windowObject);
+              if (message) {
+                setText(statusElement, message);
+              }
+            },
+            onError: (event) => {
+              setText(statusElement, playerErrorMessage(event.data));
+            },
+            onAutoplayBlocked: () => {
+              setText(statusElement, "Player ready. Press play in the video to start.");
+            }
+          }
+        });
+
+        return player;
+      })
+      .catch((error) => {
+        playerPromise = null;
+        throw error;
+      });
+
+    return playerPromise;
+  }
+
+  function loadSelectedVideo(activePlayer) {
+    if (!pendingVideoId || !activePlayer || !playerReady) {
+      return;
+    }
+
+    const videoId = pendingVideoId;
+    pendingVideoId = null;
+    activePlayer.loadVideoById(videoId);
   }
 
   return {
@@ -135,6 +179,7 @@ export function initializePlayer({
       }
 
       selectedSuggestion = suggestion;
+      pendingVideoId = suggestion.videoId;
       setText(selectedElement, `${suggestion.title} - ${suggestion.channelTitle}`);
       setText(statusElement, "Loading selected suggestion...");
 
@@ -146,11 +191,12 @@ export function initializePlayer({
         return;
       }
 
-      activePlayer?.loadVideoById(suggestion.videoId);
+      loadSelectedVideo(activePlayer);
     },
 
     clearPlayer() {
       selectedSuggestion = null;
+      pendingVideoId = null;
       setText(selectedElement, "");
       setText(statusElement, "Choose a suggestion to load the player.");
       player?.stopVideo?.();

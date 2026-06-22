@@ -39,22 +39,6 @@ function addLocalDays(date, days) {
   return result;
 }
 
-export function localDayRange(dateValue) {
-  if (!dateValue) {
-    throw new Error("Choose a day to view.");
-  }
-
-  const from = localDateStart(dateValue);
-  if (Number.isNaN(from.getTime())) {
-    throw new Error("Choose a valid day.");
-  }
-
-  return {
-    from: from.toISOString(),
-    to: addLocalDays(from, 1).toISOString()
-  };
-}
-
 export function localDateRange(fromDateValue, toDateValue) {
   if (!fromDateValue || !toDateValue) {
     throw new Error("Choose a start and end date.");
@@ -77,10 +61,6 @@ export function localDateRange(fromDateValue, toDateValue) {
   };
 }
 
-function currentTimeZone() {
-  return Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
-}
-
 function historyQuery(range) {
   const params = new URLSearchParams({
     from: range.from,
@@ -89,45 +69,10 @@ function historyQuery(range) {
   return `/api/moods?${params.toString()}`;
 }
 
-function summaryQuery(mode, range) {
-  const params = new URLSearchParams({
-    mode,
-    from: range.from,
-    to: range.to,
-    timeZone: currentTimeZone()
-  });
-  return `/api/moods/summary?${params.toString()}`;
-}
-
-function syncControls(form) {
-  const mode = new FormData(form).get("historyMode") || "day";
-  const dayField = form.querySelector("[data-history-day]");
-  const rangeFields = form.querySelector("[data-history-range]");
-  const isDay = mode === "day";
-
-  if (dayField) {
-    dayField.hidden = !isDay;
-  }
-
-  if (rangeFields) {
-    rangeFields.hidden = isDay;
-  }
-}
-
 function selectedRange(form) {
   const data = new FormData(form);
-  const mode = data.get("historyMode") || "day";
-
-  if (mode === "range") {
-    return {
-      mode,
-      range: localDateRange(data.get("historyFrom"), data.get("historyTo"))
-    };
-  }
-
   return {
-    mode: "day",
-    range: localDayRange(data.get("historyDay"))
+    range: localDateRange(data.get("historyFrom"), data.get("historyTo"))
   };
 }
 
@@ -175,36 +120,41 @@ export function initializeHistory({
   statusElement,
   chartCanvas,
   chartStatusElement,
-  ChartConstructor = globalThis.Chart
+  ChartConstructor = globalThis.Chart,
+  autoLoad = false,
+  onLoadError
 } = {}) {
   const today = dateInputValue(new Date());
+  let isLoading = false;
+  let pendingReload = false;
 
   if (form) {
-    form.elements.historyDay.value = today;
     form.elements.historyFrom.value = today;
     form.elements.historyTo.value = today;
-    form.addEventListener("change", () => syncControls(form));
+    form.addEventListener("change", () => {
+      return loadSelectedPeriod();
+    });
     form.addEventListener("submit", (event) => {
       event.preventDefault();
       return loadSelectedPeriod();
     });
-    syncControls(form);
   }
 
   async function loadRecent() {
-    setText(statusElement, "Loading recent mood entries...");
-    clearHistoryChart(chartStatusElement);
-    const result = await requestJson("/api/moods");
-    renderHistory(result.entries, listElement);
-    setText(statusElement, result.entries.length > 0
-      ? "Showing recent mood entries."
-      : "No mood entries yet.");
+    return loadSelectedPeriod();
   }
 
   async function loadSelectedPeriod() {
     if (!form) {
       return;
     }
+
+    if (isLoading) {
+      pendingReload = true;
+      return;
+    }
+
+    isLoading = true;
 
     let selection;
     try {
@@ -213,26 +163,37 @@ export function initializeHistory({
       renderHistory([], listElement, { emptyMessage: error.message });
       clearHistoryChart(chartStatusElement);
       setText(statusElement, error.message);
+      isLoading = false;
       return;
     }
 
     setText(statusElement, "Loading history period...");
-    const [historyResult, summary] = await Promise.all([
-      requestJson(historyQuery(selection.range)),
-      requestJson(summaryQuery(selection.mode, selection.range))
-    ]);
+    try {
+      const historyResult = await requestJson(historyQuery(selection.range));
+      const emptyMessage = "No mood entries in this period.";
+      renderHistory(historyResult.entries, listElement, { emptyMessage });
+      renderHistoryChart({
+        entries: historyResult.entries,
+        canvas: chartCanvas,
+        statusElement: chartStatusElement,
+        ChartConstructor
+      });
+      setText(statusElement, historyResult.entries.length > 0
+        ? "Showing selected history period."
+        : emptyMessage);
+    } finally {
+      isLoading = false;
+      if (pendingReload) {
+        pendingReload = false;
+        await loadSelectedPeriod();
+      }
+    }
+  }
 
-    const emptyMessage = "No mood entries in this period.";
-    renderHistory(historyResult.entries, listElement, { emptyMessage });
-    renderHistoryChart({
-      summary,
-      canvas: chartCanvas,
-      statusElement: chartStatusElement,
-      ChartConstructor
+  if (autoLoad) {
+    loadSelectedPeriod().catch((error) => {
+      onLoadError?.(error);
     });
-    setText(statusElement, historyResult.entries.length > 0
-      ? "Showing selected history period."
-      : emptyMessage);
   }
 
   return {

@@ -211,10 +211,10 @@ export function createRecommendationProfile(input) {
   const isShift = entry.mode === "shift";
 
   const moodTerms = isShift
-    ? uniqueTerms([...targetMoodRules.moodTerms, ...sourceMoodRules.transitionTerms])
+    ? [...targetMoodRules.moodTerms]
     : [...sourceMoodRules.moodTerms];
   const intensityTerms = isShift
-    ? [...intensityBand.shiftTerms, ...intensityBand.terms]
+    ? [...intensityBand.terms]
     : [...intensityBand.terms];
   const energyTerms = [...energyBand.terms];
   const styleTerms = isShift

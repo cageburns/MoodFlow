@@ -176,24 +176,28 @@ describe("recommendation rules", () => {
     }
   });
 
-  it("applies shift-specific intensity transition terms", () => {
-    const lowShift = createRecommendationProfile({
-      mood: "angry",
-      intensity: 2,
+  it("keeps shift searches focused on the target mood instead of transition descriptors", () => {
+    const shiftProfile = createRecommendationProfile({
+      mood: "overwhelmed",
+      intensity: 5,
       energy: 5,
       musicMode: "shift",
-      targetMood: "calm"
+      targetMood: "focused"
     });
-    const highShift = createRecommendationProfile({
-      mood: "angry",
-      intensity: 9,
+    const focusedMatchProfile = createRecommendationProfile({
+      mood: "focused",
+      intensity: 5,
       energy: 5,
-      musicMode: "shift",
-      targetMood: "calm"
+      musicMode: "match"
     });
 
-    assert.ok(lowShift.intensityTerms.includes("gentle transition"));
-    assert.ok(highShift.intensityTerms.includes("grounded transition"));
+    assert.deepEqual(shiftProfile.moodTerms, focusedMatchProfile.moodTerms);
+    assert.deepEqual(shiftProfile.styleTerms, focusedMatchProfile.styleTerms);
+    assert.deepEqual(shiftProfile.intensityTerms, focusedMatchProfile.intensityTerms);
+    assert.equal(shiftProfile.moodTerms.includes("spacious"), false);
+    assert.equal(shiftProfile.moodTerms.includes("uncluttered"), false);
+    assert.equal(shiftProfile.intensityTerms.includes("gradual transition"), false);
+    assert.match(shiftProfile.reason, /from overwhelmed toward focused/);
   });
 
   it("does not include mood-note text anywhere in the profile", () => {

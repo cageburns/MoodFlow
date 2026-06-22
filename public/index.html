@@ -69,42 +69,23 @@
             </select>
           </div>
 
-          <button type="submit">Save mood entry</button>
+          <button type="submit">Save mood & suggest music</button>
           <p id="form-status" class="status" role="status"></p>
         </form>
 
         <section aria-labelledby="history-title">
           <h2 id="history-title">Recent entries</h2>
           <form id="history-controls" class="history-controls">
-            <fieldset class="mode-group">
-              <legend>History view</legend>
-              <label>
-                <input type="radio" name="historyMode" value="day" checked>
-                Day
-              </label>
-              <label>
-                <input type="radio" name="historyMode" value="range">
-                Date range
-              </label>
-            </fieldset>
-
-            <div class="field" data-history-day>
-              <label for="history-day">Day</label>
-              <input id="history-day" name="historyDay" type="date">
-            </div>
-
-            <div class="field-grid" data-history-range hidden>
+            <div class="field-grid">
               <div class="field">
-                <label for="history-from">Start date</label>
+                <label for="history-from">From</label>
                 <input id="history-from" name="historyFrom" type="date">
               </div>
               <div class="field">
-                <label for="history-to">End date</label>
+                <label for="history-to">To</label>
                 <input id="history-to" name="historyTo" type="date">
               </div>
             </div>
-
-            <button type="submit">Update history</button>
           </form>
           <p id="history-status" class="status" role="status">Loading recent mood entries...</p>
           <div class="chart-panel" aria-labelledby="chart-title">
@@ -123,9 +104,9 @@
           <div>
             <h2 id="music-title">Music suggestions</h2>
             <p id="suggestions-status" class="status" role="status">Save a mood entry to request music suggestions.</p>
-            <p class="panel-note">Suggestions use fixed mood rules and only run after you request them.</p>
+            <p class="panel-note">Suggestions use fixed mood rules and load after a mood entry is saved.</p>
           </div>
-          <button id="suggestions-button" type="button" disabled>Suggest music</button>
+          <button id="suggestions-button" type="button" disabled hidden>Suggest music</button>
         </div>
 
         <div class="music-layout">

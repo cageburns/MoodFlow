@@ -1,12 +1,21 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { clearHistoryChart, renderHistoryChart } from "../public/js/charts.js";
+import {
+  chartDataForEntries,
+  clearHistoryChart,
+  MOOD_CHART_VALUES,
+  renderHistoryChart
+} from "../public/js/charts.js";
 
 class TestElement {
   constructor(tagName = "div") {
     this.tagName = tagName;
     this.textContent = "";
   }
+}
+
+function alphaFromRgba(value) {
+  return Number(value.match(/,\s*([0-9.]+)\)$/)?.[1]);
 }
 
 describe("Phase 6 chart frontend behavior", () => {
@@ -52,6 +61,162 @@ describe("Phase 6 chart frontend behavior", () => {
     );
     assert.deepEqual(charts[0].config.data.datasets[0].data, [4.5, 7]);
     assert.deepEqual(charts[0].config.data.datasets[1].data, [6.25, 3]);
+  });
+
+  it("renders actual mood values beside intensity and energy without replacing mood names", () => {
+    const entries = [
+      {
+        mood: "sad",
+        intensity: 3,
+        energy: 2,
+        createdAt: "2026-06-21T11:00:00.000Z"
+      },
+      {
+        mood: "happy",
+        intensity: 8,
+        energy: 7,
+        createdAt: "2026-06-21T09:00:00.000Z"
+      }
+    ];
+    const data = chartDataForEntries(entries);
+
+    assert.equal(MOOD_CHART_VALUES.happy, 8);
+    assert.equal(MOOD_CHART_VALUES.sad, 1);
+    assert.deepEqual(
+      data.datasets.map((dataset) => dataset.label),
+      ["Intensity", "Energy", "Actual mood"]
+    );
+    assert.deepEqual(data.datasets.map((dataset) => dataset.type), ["line", "line", "bar"]);
+    assert.deepEqual(data.datasets[0].data, [8, 3]);
+    assert.deepEqual(data.datasets[1].data, [7, 2]);
+    assert.deepEqual(data.datasets[2].data.map((point) => point.y), [8, 1]);
+    assert.deepEqual(data.datasets[2].data.map((point) => point.mood), ["happy", "sad"]);
+    assert.equal(data.datasets[2].minBarLength, 6);
+    assert.equal(data.datasets[2].barPercentage, 0.42);
+    assert.equal(data.datasets[2].backgroundColor, "rgba(91, 95, 151, 0.42)");
+    assert.notEqual(data.datasets[2].data[1].y, null);
+  });
+
+  it("uses stronger mood bars behind softer intensity and energy lines", () => {
+    const data = chartDataForEntries([
+      {
+        mood: "calm",
+        intensity: 7,
+        energy: 6,
+        createdAt: "2026-06-21T10:00:00.000Z"
+      }
+    ]);
+    const [intensity, energy, mood] = data.datasets;
+
+    assert.equal(intensity.type, "line");
+    assert.equal(energy.type, "line");
+    assert.equal(mood.type, "bar");
+    assert.equal(mood.order > energy.order, true);
+    assert.equal(energy.order > intensity.order, true);
+    assert.equal(alphaFromRgba(mood.backgroundColor) > alphaFromRgba(intensity.backgroundColor), true);
+    assert.equal(alphaFromRgba(mood.backgroundColor) > alphaFromRgba(energy.backgroundColor), true);
+    assert.equal(alphaFromRgba(mood.borderColor) > alphaFromRgba(intensity.borderColor), true);
+    assert.equal(mood.backgroundColor, "rgba(91, 95, 151, 0.42)");
+    assert.equal(mood.borderColor, "rgba(91, 95, 151, 0.86)");
+    assert.equal(intensity.borderColor, "rgba(47, 111, 109, 0.72)");
+    assert.equal(energy.borderColor, "rgba(138, 79, 125, 0.62)");
+    assert.equal(intensity.pointRadius, 2);
+    assert.equal(energy.pointRadius, 2);
+  });
+
+  it("renders mood names on the mood axis and in tooltips", () => {
+    const statusElement = new TestElement("p");
+    const charts = [];
+    class ChartMock {
+      constructor(canvas, config) {
+        this.canvas = canvas;
+        this.config = config;
+        charts.push(this);
+      }
+    }
+
+    renderHistoryChart({
+      entries: [
+        {
+          mood: "focused",
+          intensity: 6,
+          energy: 7,
+          createdAt: "2026-06-21T10:00:00.000Z"
+        }
+      ],
+      canvas: new TestElement("canvas"),
+      statusElement,
+      ChartConstructor: ChartMock
+    });
+
+    const config = charts[0].config;
+    assert.equal(statusElement.textContent, "Mood, intensity, and energy trend for selected period.");
+    assert.equal(config.type, "bar");
+    assert.deepEqual(config.data.datasets.map((dataset) => dataset.type), ["line", "line", "bar"]);
+    assert.equal(config.data.datasets[2].yAxisID, "mood");
+    assert.equal(config.options.scales.mood.ticks.callback(6), "focused");
+    assert.equal(config.options.scales.mood.ticks.callback(4), "anxious");
+    assert.equal(
+      config.options.plugins.tooltip.callbacks.label({
+        dataset: { label: "Actual mood" },
+        dataIndex: 0
+      }),
+      "Mood: focused"
+    );
+    assert.equal(
+      config.options.plugins.tooltip.callbacks.label({
+        dataset: { label: "Intensity" },
+        dataIndex: 0
+      }),
+      "Intensity: 6/10"
+    );
+    assert.equal(
+      config.options.plugins.tooltip.callbacks.label({
+        dataset: { label: "Energy" },
+        dataIndex: 0
+      }),
+      "Energy: 7/10"
+    );
+  });
+
+  it("keeps the lowest recorded mood distinguishable from missing data", () => {
+    const statusElement = new TestElement("p");
+    const charts = [];
+    class ChartMock {
+      constructor(canvas, config) {
+        this.canvas = canvas;
+        this.config = config;
+        charts.push(this);
+      }
+    }
+
+    renderHistoryChart({
+      entries: [
+        {
+          mood: "sad",
+          intensity: 2,
+          energy: 3,
+          createdAt: "2026-06-21T10:00:00.000Z"
+        }
+      ],
+      canvas: new TestElement("canvas"),
+      statusElement,
+      ChartConstructor: ChartMock
+    });
+
+    const moodDataset = charts[0].config.data.datasets[2];
+    assert.equal(moodDataset.minBarLength, 6);
+    assert.equal(moodDataset.data[0].y, MOOD_CHART_VALUES.sad);
+    assert.equal(moodDataset.data[0].mood, "sad");
+    assert.notEqual(moodDataset.data[0].y, null);
+    assert.equal(charts[0].config.options.scales.mood.ticks.callback(MOOD_CHART_VALUES.sad), "sad");
+    assert.equal(
+      charts[0].config.options.plugins.tooltip.callbacks.label({
+        dataset: { label: "Actual mood" },
+        dataIndex: 0
+      }),
+      "Mood: sad"
+    );
   });
 
   it("destroys the previous chart before drawing a replacement", () => {
@@ -104,5 +269,18 @@ describe("Phase 6 chart frontend behavior", () => {
 
     clearHistoryChart(statusElement);
     assert.equal(statusElement.textContent, "Choose a history period to draw a chart.");
+  });
+
+  it("keeps the chart area available and reports an empty state when there are no entries", () => {
+    const statusElement = new TestElement("p");
+    const chart = renderHistoryChart({
+      entries: [],
+      canvas: new TestElement("canvas"),
+      statusElement,
+      ChartConstructor: class {}
+    });
+
+    assert.equal(chart, null);
+    assert.equal(statusElement.textContent, "No chart data for this period.");
   });
 });

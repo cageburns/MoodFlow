@@ -34,7 +34,9 @@ function createDocument() {
   };
 }
 
-function createReadyWindow(loadedVideos) {
+function createReadyWindow(loadedVideos, options = {}) {
+  const { autoReady = true, playerInstances = [] } = options;
+
   return {
     location: { origin: "http://moodflow.test" },
     YT: {
@@ -42,17 +44,26 @@ function createReadyWindow(loadedVideos) {
         PLAYING: 1,
         PAUSED: 2,
         BUFFERING: 3,
-        ENDED: 0
+        ENDED: 0,
+        CUED: 5
       },
       Player: class {
         constructor(container, options) {
           this.container = container;
           this.options = options;
           this.loadedVideos = loadedVideos;
-          options.events.onReady();
+          playerInstances.push(this);
+
+          if (autoReady) {
+            options.events.onReady({ target: this });
+          }
         }
 
         loadVideoById(videoId) {
+          this.loadedVideos.push(videoId);
+        }
+
+        cueVideoById(videoId) {
           this.loadedVideos.push(videoId);
         }
 
@@ -80,10 +91,11 @@ describe("Phase 5 player frontend behavior", () => {
     assert.equal(player._getPlayerForTests(), null);
   });
 
-  it("loads the IFrame API once and plays the selected suggestion", async () => {
+  it("stores the first selection until the player is ready, then loads later switches normally", async () => {
     const documentObject = createDocument();
     const windowObject = { location: { origin: "http://moodflow.test" } };
     const loadedVideos = [];
+    const playerInstances = [];
     const statusElement = new TestElement("p");
     const selectedElement = new TestElement("p");
     const player = initializePlayer({
@@ -103,13 +115,30 @@ describe("Phase 5 player frontend behavior", () => {
     assert.equal(documentObject.scripts.length, 1);
     assert.equal(documentObject.scripts[0].src, "https://www.youtube.com/iframe_api");
 
-    windowObject.YT = createReadyWindow(loadedVideos).YT;
+    windowObject.YT = createReadyWindow(loadedVideos, {
+      autoReady: false,
+      playerInstances
+    }).YT;
     windowObject.onYouTubeIframeAPIReady();
     await playPromise;
 
-    assert.deepEqual(loadedVideos, ["abc123"]);
+    assert.equal(playerInstances.length, 1);
+    assert.deepEqual(loadedVideos, []);
     assert.equal(selectedElement.textContent, "Example Official Video - ExampleVEVO");
     assert.equal(player._getPlayerForTests().options.playerVars.origin, "http://moodflow.test");
+    assert.equal(player._getPlayerForTests().options.playerVars.playsinline, 1);
+
+    playerInstances[0].options.events.onReady({ target: playerInstances[0] });
+    assert.deepEqual(loadedVideos, ["abc123"]);
+
+    await player.playSuggestion({
+      videoId: "second",
+      title: "Second Song",
+      channelTitle: "Second Artist"
+    });
+
+    assert.equal(playerInstances.length, 1);
+    assert.deepEqual(loadedVideos, ["abc123", "second"]);
   });
 
   it("reuses one player when switching suggestions", async () => {
@@ -190,6 +219,8 @@ describe("Phase 5 player frontend behavior", () => {
     const playerInstance = player._getPlayerForTests();
     playerInstance.options.events.onStateChange({ data: windowObject.YT.PlayerState.BUFFERING });
     assert.equal(statusElement.textContent, "Loading selected suggestion...");
+    playerInstance.options.events.onStateChange({ data: windowObject.YT.PlayerState.CUED });
+    assert.equal(statusElement.textContent, "Player ready. Press play in the video to start.");
     playerInstance.options.events.onStateChange({ data: windowObject.YT.PlayerState.PLAYING });
     assert.equal(statusElement.textContent, "Playing selected suggestion.");
     playerInstance.options.events.onStateChange({ data: windowObject.YT.PlayerState.ENDED });
