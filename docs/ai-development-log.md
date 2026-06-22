@@ -1248,6 +1248,267 @@ Pending reviewer evaluation. Do not begin Phase 4 until separately assigned.
 
 ---
 
+## Entry 21: Phase 4 YouTube search, filtering, ranking, and cache
+
+**Date:** 2026-06-22
+**Stage:** Phase 4: YouTube Search, Cleaning, and Caching
+**AI tool:** Codex
+**Model:** GPT-5
+**Agent role:** Implementer
+
+### Task
+
+Implement Phase 4 only: server-side YouTube Data API v3 search from a saved mood entry, deterministic search construction from the Phase 3 recommendation profile, result normalization, hard rejection, deduplication, ranking, 15-minute successful-result caching, controlled errors, and mocked automated tests.
+
+### Representative prompts or decisions
+
+The implementer confirmed the active role as `implementer`, scoped work to Phase 4, and kept recommendation logic separate from YouTube integration. The route accepts only `moodEntryId`; mood-note text is never passed to the YouTube client. The YouTube API key is read only from local backend configuration and is never returned to the browser.
+
+### Files or changes produced
+
+Created:
+
+- `src/integrations/youtube.client.js`
+- `src/routes/music.routes.js`
+- `src/services/music-search.service.js`
+- `src/utils/result-ranker.js`
+- `src/utils/search-cache.js`
+- `tests/youtube-query.test.js`
+- `tests/result-ranker.test.js`
+- `tests/search-cache.test.js`
+- `tests/music-api.test.js`
+
+Updated:
+
+- `src/app.js`
+- `src/config.js`
+- `src/server.js`
+- `docs/ai-development-log.md`
+
+### Verification and tests
+
+Commands and checks run:
+
+- `npm test` -> **45 passed, 0 failed**
+- `git diff --check` -> passed with LF-to-CRLF warnings only for touched files
+- tracked-file exact local YouTube key scan -> `Tracked files containing local YouTube key: 0`
+- browser source scan for `YOUTUBE_API_KEY`, `googleapis`, `youtube/v3`, and `key=` under `public/` -> no matches
+- source scan for YouTube/API references -> Data API usage is limited to backend code and mocked tests; browser code contains no key or YouTube Data API request
+
+Automated tests verify:
+
+- search parameters use `part=snippet`, `type=video`, `order=relevance`, `maxResults=10`, `videoEmbeddable=true`, `videoSyndicated=true`, `videoCategoryId=10`, and `safeSearch=moderate`
+- generated queries include exclusion terms and exclude mood-note text
+- one YouTube client search performs exactly one mocked `search.list` fetch
+- YouTube responses normalize to internal candidate fields
+- configuration, quota, rate-limit, unavailable, and invalid-response failures produce controlled errors
+- hard-rejected content is excluded
+- duplicate video IDs are removed
+- ranking prefers official, Topic, and Vevo-style signals and is deterministic
+- cache hits avoid another mocked YouTube call within 15 minutes, and expired entries trigger a new call
+- `POST /api/music/suggestions` loads a saved entry, returns up to five public suggestions, omits internal score, and does not leak notes or secrets
+- prior Phase 1, Phase 2, and Phase 3 tests still pass
+
+### Problems or corrections
+
+No live YouTube request was run during the automated test suite, preserving quota. Node-based test execution required approved execution outside the filesystem sandbox, matching prior phase behavior in this environment.
+
+### Acceptance-criteria status
+
+Passed:
+
+- YouTube Data API v3 integration is server-side
+- `YOUTUBE_API_KEY` is read only from local backend environment/configuration
+- the API key is not returned, logged, committed, or present in browser code
+- mood-note text is not sent to the YouTube integration
+- Phase 3 profiles are converted into YouTube music searches
+- uncached requests make one mocked `search.list` request
+- 10 candidates are requested
+- YouTube responses are normalized internally
+- hard rejection, deduplication, and deterministic ranking are implemented
+- no more than five suitable suggestions are returned
+- official audio/video, Topic, and Vevo-style signals are preferred
+- reactions, reviews, interviews, tutorials, podcasts, and analysis videos are hard-rejected
+- live, cover, karaoke, remix, and lyrics signals are lower-ranked
+- successful identical searches are cached for 15 minutes
+- missing configuration, quota failure, rate limiting, upstream failure, invalid response, and no acceptable suggestions use controlled errors
+- `POST /api/music/suggestions` is implemented
+- YouTube is mocked in automated tests and no live quota is consumed
+- all relevant tests pass
+
+Not implemented by design:
+
+- embedded YouTube player
+- history charts
+- Phase 5 and later work
+
+### Evaluation
+
+Phase 4 implementation is ready for independent testing.
+
+### Human decision
+
+Pending tester and reviewer evaluation. Do not begin Phase 5 until separately assigned.
+
+---
+
+## Entry 22: Phase 4 independent testing
+
+**Date:** 2026-06-22
+**Stage:** Phase 4: YouTube Search, Cleaning, and Caching
+**AI tool:** Codex
+**Model:** GPT-5
+**Agent role:** Tester
+
+### Task
+
+Independently test the completed Phase 4 YouTube search, filtering, ranking, and cache implementation against the documented acceptance criteria, without beginning Phase 5 or Phase 6.
+
+### Files or changes produced
+
+Updated:
+
+- `tests/music-api.test.js`
+- `tests/youtube-query.test.js`
+- `docs/ai-development-log.md`
+
+Inspected:
+
+- `.codex/agents/tester.toml`
+- `.agents/skills/moodflow-phase-workflow/SKILL.md`
+- `docs/project-plan.md`
+- `docs/requirements.md`
+- `docs/architecture.md`
+- latest Phase 4 implementer handoff in this log
+- `src/integrations/youtube.client.js`
+- `src/services/music-search.service.js`
+- `src/utils/result-ranker.js`
+- `src/utils/search-cache.js`
+- `src/routes/music.routes.js`
+- `src/app.js`
+- `src/config.js`
+- `src/server.js`
+- Phase 4 automated tests
+
+### Verification and tests
+
+Commands and checks run:
+
+- `npm test` -> **47 passed, 0 failed**
+- `git diff --check` -> passed with LF-to-CRLF warnings only
+- browser source scan for `googleapis`, `youtube/v3`, `YOUTUBE_API_KEY`, and `key=` under `public/` -> no matches
+- early Phase 5/6 scan for player, iframe, Chart.js, charts, and summary code under `src`, `public`, and `tests` -> no matches
+- test/source scan for `fetch(` and the YouTube Data API URL -> browser and route tests call only local test servers; the only YouTube Data API URL is in the backend client, and tests inject mocked `fetchImpl`
+- `git check-ignore .env node_modules/ data/example.sqlite` -> all ignored
+- `git ls-files .env data/*.sqlite` -> no output
+- tracked-file exact local YouTube key scan -> `Tracked files containing local YouTube key: 0`
+- `npm ls --depth=0` -> dependencies remain `better-sqlite3`, `dotenv`, and `express`
+
+Added or strengthened automated coverage for:
+
+- invalid `moodEntryId` payloads returning `VALIDATION_ERROR` before calling YouTube
+- missing YouTube API configuration returning `YOUTUBE_CONFIGURATION_ERROR` without invoking `fetch`
+- YouTube unavailable errors returning controlled public responses without leaking upstream details
+- saved mood entries remaining available through `/api/moods` after YouTube failure
+
+Previously added Phase 4 tests also verified:
+
+- server-side query construction with 10 candidates and documented request parameters
+- mood-note text absent from generated YouTube profile/query inputs
+- one mocked `search.list` request for one uncached client search
+- deterministic hard rejection, deduplication, ranking, and up-to-five result limiting
+- 15-minute cache hit and expiration behavior
+- quota, rate-limit, unavailable, invalid-response, no-result, and not-found error codes
+
+### Problems or corrections
+
+No Phase 4 implementation defects were found. No production code was changed by the tester.
+
+Node and npm commands were run with approval outside the filesystem sandbox because this environment blocks Node from resolving user-profile paths during npm execution.
+
+### Acceptance-criteria status
+
+Verified as passed:
+
+- API key handling remains server-side
+- no local API key value is present in tracked files or browser code
+- mood-note text does not reach the YouTube integration or public suggestion response
+- uncached searches call the mocked YouTube client once
+- the backend requests 10 candidates and returns at most five normalized suggestions
+- obvious non-music results are removed
+- duplicate video IDs are removed
+- ranking is deterministic and prefers documented official/Topic/Vevo signals
+- live, cover, karaoke, remix, and lyrics signals are lower-ranked rather than hard-rejected
+- identical successful searches are cached for 15 minutes
+- controlled errors are returned for invalid input, missing config, quota/rate-limit/upstream failures, invalid response, missing entries, and no suitable results
+- mood data remains available after YouTube failure
+- automated tests are mocked and did not consume live YouTube quota
+- no embedded player, history charts, or later-phase scope was added
+- all relevant tests pass
+
+### Limitations
+
+No live YouTube call or browser playback check was performed in this tester pass. That is intentional for Phase 4 automated testing because the phase requires mocked YouTube tests and excludes the embedded player.
+
+### Evaluation
+
+Phase 4 passed independent testing and is ready for reviewer evaluation.
+
+### Human decision
+
+Pending reviewer evaluation. Do not begin Phase 5 until separately assigned.
+
+---
+
+## Entry 23: Phase 4 review
+
+**Date:** 2026-06-22
+**Stage:** Phase 4: YouTube Search, Cleaning, and Caching
+**AI tool:** Codex
+**Model:** GPT-5
+**Agent role:** Reviewer
+
+### Task
+
+Perform a read-only review of the completed Phase 4 implementation and tester evidence.
+
+### Evidence inspected
+
+- Phase 4 implementation files
+- Phase 4 tests
+- `docs/project-plan.md`
+- `docs/requirements.md`
+- `docs/architecture.md`
+- Phase 4 implementer and tester handoffs in `docs/ai-development-log.md`
+
+### Read-only checks
+
+- `npm test` -> 47 passed, 0 failed
+- `git diff --check` -> passed with LF/CRLF warnings only
+- browser source scan found no YouTube API key or Data API request exposure
+- exact local YouTube key scan found 0 tracked-file matches
+- `.env`, `node_modules/`, and SQLite ignore checks passed
+- early Phase 5/6 scope scan found no player, chart, or summary implementation
+- dependency check found no new dependencies
+
+### Findings
+
+No critical, high, medium, or low findings identified.
+
+### Acceptance-criteria status
+
+All Phase 4 acceptance criteria are satisfied. Tester limitation of no live YouTube/browser playback check is accepted because Phase 4 requires mocked YouTube tests and excludes embedded playback.
+
+### Verdict
+
+Approved. Phase 4 is ready to close.
+
+### Human decision
+
+Phase 4 may be closed. Do not begin Phase 5 until separately assigned.
+
+---
+
 ## Template for future entries
 
 ## Entry N: [Activity name]
