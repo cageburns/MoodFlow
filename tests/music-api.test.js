@@ -15,6 +15,10 @@ let repository;
 let moodService;
 let server;
 let baseUrl;
+const TEST_USER_ID = "00000000-0000-4000-8000-000000000001";
+const OTHER_USER_ID = "00000000-0000-4000-8000-000000000002";
+const TEST_COOKIE = `moodflow_user=${TEST_USER_ID}`;
+const OTHER_COOKIE = `moodflow_user=${OTHER_USER_ID}`;
 
 beforeEach(async () => {
   db = new Database(":memory:");
@@ -63,7 +67,10 @@ async function startApp(youtubeClient, options = {}) {
 async function postJson(path, payload) {
   const response = await fetch(`${baseUrl}${path}`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      Cookie: TEST_COOKIE
+    },
     body: JSON.stringify(payload)
   });
   const body = await response.json();
@@ -79,7 +86,7 @@ async function createMood(payload = {}) {
     musicMode: "shift",
     targetMood: "calm",
     ...payload
-  });
+  }, payload.userId || TEST_USER_ID);
   return result;
 }
 
@@ -435,7 +442,9 @@ describe("music suggestions API", () => {
     });
 
     const suggestionResult = await postJson("/api/music/suggestions", { moodEntryId: mood.id });
-    const historyResponse = await fetch(`${baseUrl}/api/moods`);
+    const historyResponse = await fetch(`${baseUrl}/api/moods`, {
+      headers: { Cookie: TEST_COOKIE }
+    });
     const historyBody = await historyResponse.json();
 
     assert.equal(suggestionResult.response.status, 503);
@@ -443,5 +452,51 @@ describe("music suggestions API", () => {
     assert.equal(JSON.stringify(suggestionResult.body).includes("private details"), false);
     assert.equal(historyResponse.status, 200);
     assert.equal(historyBody.entries.some((entry) => entry.id === mood.id), true);
+  });
+
+  it("does not allow one anonymous user to request another user's mood suggestions", async () => {
+    let callCount = 0;
+    const otherUserMood = await createMood({
+      userId: OTHER_USER_ID,
+      mood: "happy",
+      intensity: 6,
+      energy: 6,
+      musicMode: "match",
+      targetMood: null
+    });
+    await startApp({
+      async search() {
+        callCount += 1;
+        return youtubeCandidates();
+      }
+    });
+
+    const response = await fetch(`${baseUrl}/api/music/suggestions`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Cookie: TEST_COOKIE
+      },
+      body: JSON.stringify({ moodEntryId: otherUserMood.id })
+    });
+    const body = await response.json();
+
+    assert.equal(response.status, 404);
+    assert.equal(body.error.code, "NOT_FOUND");
+    assert.equal(callCount, 0);
+
+    const ownerResponse = await fetch(`${baseUrl}/api/music/suggestions`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Cookie: OTHER_COOKIE
+      },
+      body: JSON.stringify({ moodEntryId: otherUserMood.id })
+    });
+    const ownerBody = await ownerResponse.json();
+
+    assert.equal(ownerResponse.status, 200);
+    assert.equal(ownerBody.suggestions.length, 5);
+    assert.equal(callCount, 1);
   });
 });

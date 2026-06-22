@@ -2,10 +2,13 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { createSummaryService } from "../src/services/summary.service.js";
 
+const USER_ID = "00000000-0000-4000-8000-000000000001";
+
 function repositoryWith(entries) {
   return {
-    listBetween(from, to) {
+    listBetween(userId, from, to) {
       return entries
+        .filter((entry) => !entry.userId || entry.userId === userId)
         .filter((entry) => entry.createdAt >= from && entry.createdAt < to)
         .sort((left, right) => left.createdAt.localeCompare(right.createdAt));
     }
@@ -30,6 +33,7 @@ describe("summary service", () => {
     ]));
 
     const summary = service.getMoodSummary({
+      userId: USER_ID,
       mode: "day",
       from: "2026-06-21T00:00:00.000Z",
       to: "2026-06-22T00:00:00.000Z",
@@ -65,6 +69,7 @@ describe("summary service", () => {
     ]));
 
     const summary = service.getMoodSummary({
+      userId: USER_ID,
       mode: "range",
       from: "2026-06-21T00:00:00.000Z",
       to: "2026-06-23T00:00:00.000Z",
@@ -85,6 +90,7 @@ describe("summary service", () => {
     const service = createSummaryService(repositoryWith([]));
 
     assert.throws(() => service.getMoodSummary({
+      userId: USER_ID,
       mode: "week",
       from: "2026-06-21T00:00:00.000Z",
       to: "2026-06-22T00:00:00.000Z",
@@ -92,6 +98,7 @@ describe("summary service", () => {
     }), /Invalid mood entry/);
 
     assert.throws(() => service.getMoodSummary({
+      userId: USER_ID,
       mode: "day",
       from: "2026-06-22T00:00:00.000Z",
       to: "2026-06-21T00:00:00.000Z",

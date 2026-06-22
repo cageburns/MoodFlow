@@ -25,6 +25,7 @@ function cacheKeyForProfile(profile) {
     mode: profile.mode,
     currentMood: profile.currentMood,
     targetMood: profile.targetMood,
+    profileMood: profile.profileMood,
     intensityBand: profile.intensityBand,
     energyBand: profile.energyBand,
     moodTerms: profile.moodTerms,
@@ -54,7 +55,7 @@ export function createMusicSearchService({
   cacheTtlMs
 }) {
   return {
-    async suggestForMoodEntry(moodEntryId) {
+    async suggestForMoodEntry(moodEntryId, userId) {
       const id = Number(moodEntryId);
 
       if (!Number.isInteger(id) || id <= 0) {
@@ -66,7 +67,7 @@ export function createMusicSearchService({
         ]);
       }
 
-      const entry = moodRepository.getById(id);
+      const entry = moodRepository.getById(id, userId);
 
       if (!entry) {
         throw createPublicError("NOT_FOUND", 404, "Mood entry was not found.");

@@ -107,11 +107,11 @@ function summarizeRange(entries, timeZone) {
 
 export function createSummaryService(repository) {
   return {
-    getMoodSummary({ mode, from, to, timeZone } = {}) {
+    getMoodSummary({ userId, mode, from, to, timeZone } = {}) {
       validateMode(mode);
       const range = validateHistoryRange({ from, to });
       const selectedTimeZone = validateTimeZone(timeZone);
-      const entries = repository.listBetween(range.from, range.to);
+      const entries = repository.listBetween(userId, range.from, range.to);
       const points = mode === "day"
         ? summarizeDay(entries, selectedTimeZone)
         : summarizeRange(entries, selectedTimeZone);

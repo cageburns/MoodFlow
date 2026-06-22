@@ -20,4 +20,22 @@ export function initializeDatabase(db) {
   const schema = fs.readFileSync(schemaPath, "utf8");
   db.pragma("foreign_keys = ON");
   db.exec(schema);
+  migrateMoodEntries(db);
+}
+
+function hasColumn(db, tableName, columnName) {
+  return db.prepare(`PRAGMA table_info(${tableName})`)
+    .all()
+    .some((column) => column.name === columnName);
+}
+
+function migrateMoodEntries(db) {
+  if (!hasColumn(db, "mood_entries", "user_id")) {
+    db.exec("ALTER TABLE mood_entries ADD COLUMN user_id TEXT NOT NULL DEFAULT 'legacy'");
+  }
+
+  db.exec(`
+    CREATE INDEX IF NOT EXISTS idx_mood_entries_user_created
+    ON mood_entries (user_id, datetime(created_at), id)
+  `);
 }

@@ -2362,6 +2362,103 @@ The recommendation pipeline now uses one shared canonical mood-to-music profile 
 
 Pending user review. Changes were not committed.
 
+---
+
+## Entry 34: Anonymous cookie-based user separation
+
+**Date:** 2026-06-22
+**Stage:** Post-Phase 7 maintenance
+**AI tool:** Codex
+**Model:** GPT-5
+**Agent role:** Implementer
+
+### Task
+
+Implemented anonymous cookie-based user separation so each browser has its own mood entries, history, chart summaries, and saved-entry music suggestion access without login or account creation.
+
+### Representative prompts
+
+The user asked Codex to generate a random anonymous user ID with `crypto.randomUUID()`, store it in an `HttpOnly` cookie named `moodflow_user`, add `user_id` to `mood_entries`, migrate existing databases safely, filter all mood-related operations by current user ID, and add focused tests for cookie issuance, isolation, migration, and cross-user suggestion blocking.
+
+### Files or changes produced
+
+Created:
+
+- `src/middleware/anonymous-user.js`
+- `tests/anonymous-user.test.js`
+
+Updated:
+
+- `src/app.js`
+- `src/routes/moods.routes.js`
+- `src/routes/music.routes.js`
+- `src/data/db.js`
+- `src/data/schema.sql`
+- `src/data/mood.repository.js`
+- `src/services/mood.service.js`
+- `src/services/summary.service.js`
+- `src/services/music-search.service.js`
+- `tests/mood-api.test.js`
+- `tests/mood-repository.test.js`
+- `tests/summary-service.test.js`
+- `tests/music-api.test.js`
+- `package.json`
+- `docs/ai-development-log.md`
+
+### Implementation notes
+
+Design:
+
+- Added one anonymous-user middleware that reads `moodflow_user`, validates UUID format, assigns `req.userId`, and creates a new UUID when the cookie is missing or invalid.
+- Cookie attributes are `HttpOnly`, `SameSite=Lax`, `Path=/`, `Max-Age=31536000`, and `Secure` only when `NODE_ENV=production`.
+- No IP address or login/account state is used.
+- Routes pass `req.userId` into mood, summary, and music services.
+- Repository SQL enforces user isolation with `WHERE user_id = ?` for recent history, date-range history, chart summaries, and entry lookup.
+- Music suggestions lookup the saved mood entry by both `id` and `user_id`, so one browser cannot request another browser's entry by guessing its ID.
+- The UI and frontend flow were not redesigned.
+
+Migration approach:
+
+- New databases create `mood_entries.user_id` directly.
+- Existing databases are migrated with `ALTER TABLE mood_entries ADD COLUMN user_id TEXT NOT NULL DEFAULT 'legacy'`.
+- Existing rows receive the `legacy` user value.
+- The table is not dropped or recreated.
+- The user/date index is created after the column is known to exist, so legacy tables migrate safely.
+
+### Verification and tests
+
+Commands and checks run:
+
+- initial `npm test` after implementation -> **113 passed, 1 failed** because the schema attempted to create the `user_id` index before legacy tables had the column
+- fixed migration order by moving index creation into the migration path
+- final `npm test` -> **114 passed, 0 failed**
+
+Focused tests added or updated:
+
+- first request receives a long-lived anonymous-user cookie
+- cookie uses required local attributes and adds `Secure` only in production
+- invalid anonymous-user cookies are replaced
+- repeated requests with the same cookie see the same entries
+- two different browser cookies do not see each other's entries
+- history and chart summaries are isolated by anonymous user
+- one client cannot request music suggestions for another client's mood entry
+- existing database migration adds `user_id` and assigns legacy rows safely
+- repository user filtering prevents cross-user `getById`, recent history, and date-range reads
+
+### Problems or corrections
+
+The first test run caught a real migration-order issue. The schema-level index creation failed against old tables without `user_id`, so index creation was moved into the migration function after the additive column migration.
+
+`package.json` was updated from `node --test tests/*.test.js` to `node --test tests` so `npm test` runs the complete suite reliably in this Windows shell.
+
+### Evaluation
+
+Anonymous browser-level separation is implemented at the middleware, service, and repository layers. Mood creation, recent history, date-range history, summaries/charts, mood-entry lookup, and music suggestion requests are all scoped by the anonymous user ID. Existing local databases migrate without destructive table recreation.
+
+### Human decision
+
+Pending user review. Changes were not committed.
+
 ## Entry N: [Activity name]
 
 **Date:**  

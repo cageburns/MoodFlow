@@ -11,6 +11,8 @@ import { createSummaryService } from "../src/services/summary.service.js";
 let db;
 let server;
 let baseUrl;
+const TEST_USER_ID = "00000000-0000-4000-8000-000000000001";
+const TEST_COOKIE = `moodflow_user=${TEST_USER_ID}`;
 
 before(async () => {
   db = new Database(":memory:");
@@ -38,7 +40,8 @@ async function postMood(payload) {
   const response = await fetch(`${baseUrl}/api/moods`, {
     method: "POST",
     headers: {
-      "Content-Type": "application/json"
+      "Content-Type": "application/json",
+      Cookie: TEST_COOKIE
     },
     body: JSON.stringify(payload)
   });
@@ -84,7 +87,9 @@ describe("mood API", () => {
       musicMode: "match"
     });
 
-    const response = await fetch(`${baseUrl}/api/moods`);
+    const response = await fetch(`${baseUrl}/api/moods`, {
+      headers: { Cookie: TEST_COOKIE }
+    });
     const body = await response.json();
 
     assert.equal(response.status, 200);
@@ -95,16 +100,18 @@ describe("mood API", () => {
   it("filters entries by UTC range chronologically", async () => {
     db.prepare(`
       INSERT INTO mood_entries (
-        mood, intensity, energy, note, music_mode, target_mood, created_at
+        user_id, mood, intensity, energy, note, music_mode, target_mood, created_at
       )
-      VALUES (?, ?, ?, ?, ?, ?, ?)
-    `).run("calm", 3, 2, "", "match", null, "2026-06-22T06:00:00.000Z");
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(TEST_USER_ID, "calm", 3, 2, "", "match", null, "2026-06-22T06:00:00.000Z");
 
     const params = new URLSearchParams({
       from: "2026-06-22T00:00:00.000Z",
       to: "2026-06-23T00:00:00.000Z"
     });
-    const response = await fetch(`${baseUrl}/api/moods?${params.toString()}`);
+    const response = await fetch(`${baseUrl}/api/moods?${params.toString()}`, {
+      headers: { Cookie: TEST_COOKIE }
+    });
     const body = await response.json();
 
     assert.equal(response.status, 200);
@@ -114,12 +121,12 @@ describe("mood API", () => {
   it("returns day and range summaries suitable for charts", async () => {
     const insert = db.prepare(`
       INSERT INTO mood_entries (
-        mood, intensity, energy, note, music_mode, target_mood, created_at
+        user_id, mood, intensity, energy, note, music_mode, target_mood, created_at
       )
-      VALUES (?, ?, ?, ?, ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     `);
-    insert.run("calm", 4, 3, "", "match", null, "2026-06-23T09:00:00.000Z");
-    insert.run("focused", 8, 7, "", "match", null, "2026-06-23T11:00:00.000Z");
+    insert.run(TEST_USER_ID, "calm", 4, 3, "", "match", null, "2026-06-23T09:00:00.000Z");
+    insert.run(TEST_USER_ID, "focused", 8, 7, "", "match", null, "2026-06-23T11:00:00.000Z");
 
     const dayParams = new URLSearchParams({
       mode: "day",
@@ -127,7 +134,9 @@ describe("mood API", () => {
       to: "2026-06-24T00:00:00.000Z",
       timeZone: "UTC"
     });
-    const dayResponse = await fetch(`${baseUrl}/api/moods/summary?${dayParams.toString()}`);
+    const dayResponse = await fetch(`${baseUrl}/api/moods/summary?${dayParams.toString()}`, {
+      headers: { Cookie: TEST_COOKIE }
+    });
     const dayBody = await dayResponse.json();
 
     assert.equal(dayResponse.status, 200);
@@ -140,7 +149,9 @@ describe("mood API", () => {
       to: "2026-06-24T00:00:00.000Z",
       timeZone: "UTC"
     });
-    const rangeResponse = await fetch(`${baseUrl}/api/moods/summary?${rangeParams.toString()}`);
+    const rangeResponse = await fetch(`${baseUrl}/api/moods/summary?${rangeParams.toString()}`, {
+      headers: { Cookie: TEST_COOKIE }
+    });
     const rangeBody = await rangeResponse.json();
 
     assert.equal(rangeResponse.status, 200);
@@ -156,7 +167,9 @@ describe("mood API", () => {
       from: "2026-06-24T00:00:00.000Z",
       to: "2026-06-23T00:00:00.000Z"
     });
-    const response = await fetch(`${baseUrl}/api/moods?${params.toString()}`);
+    const response = await fetch(`${baseUrl}/api/moods?${params.toString()}`, {
+      headers: { Cookie: TEST_COOKIE }
+    });
     const body = await response.json();
 
     assert.equal(response.status, 400);
@@ -171,7 +184,9 @@ describe("mood API", () => {
       to: "2026-06-24T00:00:00.000Z",
       timeZone: "UTC"
     });
-    const invalidModeResponse = await fetch(`${baseUrl}/api/moods/summary?${invalidModeParams.toString()}`);
+    const invalidModeResponse = await fetch(`${baseUrl}/api/moods/summary?${invalidModeParams.toString()}`, {
+      headers: { Cookie: TEST_COOKIE }
+    });
     const invalidModeBody = await invalidModeResponse.json();
 
     assert.equal(invalidModeResponse.status, 400);
@@ -184,7 +199,9 @@ describe("mood API", () => {
       to: "2026-06-24T00:00:00.000Z",
       timeZone: "Not/AZone"
     });
-    const invalidTimeZoneResponse = await fetch(`${baseUrl}/api/moods/summary?${invalidTimeZoneParams.toString()}`);
+    const invalidTimeZoneResponse = await fetch(`${baseUrl}/api/moods/summary?${invalidTimeZoneParams.toString()}`, {
+      headers: { Cookie: TEST_COOKIE }
+    });
     const invalidTimeZoneBody = await invalidTimeZoneResponse.json();
 
     assert.equal(invalidTimeZoneResponse.status, 400);

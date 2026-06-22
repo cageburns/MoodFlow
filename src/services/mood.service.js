@@ -171,30 +171,47 @@ export function validateHistoryRange(input = {}) {
   };
 }
 
+function validateUserId(userId) {
+  if (typeof userId !== "string" || userId.trim() === "") {
+    throw createValidationError([
+      {
+        field: "userId",
+        message: "Anonymous user context is required."
+      }
+    ]);
+  }
+
+  return userId;
+}
+
 export function createMoodService(repository, now = () => new Date()) {
   return {
-    createMoodEntry(input) {
+    createMoodEntry(input, userId) {
       const entry = validateMoodInput(input);
+      const safeUserId = validateUserId(userId);
       return repository.create({
         ...entry,
+        userId: safeUserId,
         createdAt: now().toISOString()
       });
     },
 
-    listRecentMoodEntries(limit) {
+    listRecentMoodEntries(userId, limit) {
+      const safeUserId = validateUserId(userId);
       const safeLimit = Number.isInteger(limit) && limit > 0 && limit <= 100
         ? limit
         : 20;
-      return repository.listRecent(safeLimit);
+      return repository.listRecent(safeUserId, safeLimit);
     },
 
-    listMoodEntries({ limit, from, to } = {}) {
+    listMoodEntries({ userId, limit, from, to } = {}) {
+      const safeUserId = validateUserId(userId);
       if (from !== undefined || to !== undefined) {
         const range = validateHistoryRange({ from, to });
-        return repository.listBetween(range.from, range.to);
+        return repository.listBetween(safeUserId, range.from, range.to);
       }
 
-      return this.listRecentMoodEntries(limit);
+      return this.listRecentMoodEntries(safeUserId, limit);
     }
   };
 }

@@ -5,7 +5,7 @@ export function createMusicRouter(musicSearchService) {
 
   router.post("/suggestions", async (req, res, next) => {
     try {
-      const result = await musicSearchService.suggestForMoodEntry(req.body?.moodEntryId);
+      const result = await musicSearchService.suggestForMoodEntry(req.body?.moodEntryId, req.userId);
       res.status(200).json(result);
     } catch (error) {
       next(error);

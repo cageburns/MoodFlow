@@ -1,6 +1,7 @@
 import express from "express";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { anonymousUserMiddleware } from "./middleware/anonymous-user.js";
 import { errorHandler, notFoundHandler } from "./middleware/error-handler.js";
 import { createMusicRouter } from "./routes/music.routes.js";
 import { createMoodsRouter } from "./routes/moods.routes.js";
@@ -14,6 +15,7 @@ export function createApp({ moodService, summaryService, musicSearchService } = 
 
   app.disable("x-powered-by");
   app.use(express.json());
+  app.use(anonymousUserMiddleware);
   app.use(express.static(publicDir));
 
   app.get("/api/health", (req, res) => {
