@@ -6,7 +6,7 @@
   "description": "Local single-user mood logging and music discovery app.",
   "scripts": {
     "start": "node src/server.js",
-    "test": "node --test"
+    "test": "node --test tests"
   },
   "dependencies": {
     "better-sqlite3": "^12.11.1",

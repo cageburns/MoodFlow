@@ -6,6 +6,10 @@ body {
   background: #f6f8fb;
 }
 
+[hidden] {
+  display: none !important;
+}
+
 .shell {
   width: min(920px, calc(100% - 32px));
   margin: 0 auto;
@@ -32,9 +36,35 @@ h1 {
   line-height: 1.15;
 }
 
+.intro-copy {
+  max-width: 680px;
+  margin: 0;
+  color: #34495e;
+  font-size: 1.05rem;
+  line-height: 1.5;
+}
+
+.notice,
+.panel-note,
+.field-help {
+  margin: 0;
+  color: #4a5968;
+  line-height: 1.45;
+}
+
+.notice {
+  max-width: 760px;
+  border-left: 4px solid #8a4f7d;
+  padding-left: 12px;
+}
+
+.field-help {
+  font-size: 0.92rem;
+}
+
 .status {
   margin: 0;
-  color: #52616f;
+  color: #34495e;
 }
 
 .workspace {
@@ -81,7 +111,7 @@ button {
 input,
 select,
 textarea {
-  border: 1px solid #b6c2cf;
+  border: 1px solid #8ea0b2;
   border-radius: 6px;
   padding: 10px 12px;
   background: #ffffff;
@@ -126,8 +156,9 @@ button:disabled {
 button:focus-visible,
 input:focus-visible,
 select:focus-visible,
-textarea:focus-visible {
-  outline: 3px solid #89b8ff;
+textarea:focus-visible,
+a:focus-visible {
+  outline: 3px solid #1455c0;
   outline-offset: 2px;
 }
 
@@ -174,7 +205,7 @@ h2 {
 
 .history-meta,
 .empty-state {
-  color: #52616f;
+  color: #34495e;
 }
 
 .music-panel {
@@ -238,7 +269,7 @@ h2 {
 
 .suggestion-meta,
 .selected-suggestion {
-  color: #52616f;
+  color: #34495e;
 }
 
 .player-panel {
@@ -261,6 +292,11 @@ h2 {
 }
 
 @media (max-width: 720px) {
+  .shell {
+    width: min(100% - 24px, 920px);
+    padding: 32px 0;
+  }
+
   .workspace,
   .field-grid,
   .music-header,
@@ -270,5 +306,14 @@ h2 {
 
   h1 {
     font-size: 2rem;
+  }
+
+  .music-header {
+    align-items: stretch;
+  }
+
+  .suggestion-card button,
+  .suggestion-card a {
+    width: 100%;
   }
 }
