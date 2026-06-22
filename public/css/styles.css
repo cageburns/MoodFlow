@@ -214,6 +214,7 @@ h3 {
   grid-template-rows: auto minmax(0, 1fr);
   gap: 22px;
   align-content: start;
+  height: var(--top-row-height);
   min-height: var(--top-row-height);
   min-width: 0;
 }
