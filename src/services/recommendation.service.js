@@ -13,16 +13,19 @@ export const RECOMMENDATION_RULES = {
     happy: {
       moodTerms: ["happy", "bright", "uplifting"],
       styleTerms: ["pop", "feel good"],
+      queryTerms: ["happy", "bright", "uplifting", "feel good", "upbeat pop", "joyful music"],
       transitionTerms: ["positive", "light"]
     },
     calm: {
       moodTerms: ["calm", "soothing", "peaceful"],
       styleTerms: ["ambient", "gentle"],
+      queryTerms: ["calm", "soothing", "peaceful", "ambient", "gentle", "relaxing music"],
       transitionTerms: ["settling", "relaxing"]
     },
     sad: {
       moodTerms: ["sad", "melancholy", "emotional"],
       styleTerms: ["indie", "acoustic"],
+      queryTerms: ["sad", "melancholy", "emotional", "indie", "acoustic", "sad music"],
       transitionTerms: ["comforting", "reflective"]
     },
     anxious: {
@@ -46,11 +49,13 @@ export const RECOMMENDATION_RULES = {
     focused: {
       moodTerms: ["focused", "concentration", "flow"],
       styleTerms: ["instrumental", "electronic"],
+      queryTerms: ["focused", "concentration", "flow", "instrumental", "electronic", "focus music"],
       transitionTerms: ["clear", "steady"]
     },
     overwhelmed: {
-      moodTerms: ["overwhelmed", "busy mind", "pressure"],
-      styleTerms: ["ambient", "minimal"],
+      moodTerms: ["overwhelmed", "overloaded", "chaotic", "turbulent", "intense", "restless", "frantic"],
+      styleTerms: ["sensory overload", "dark electronic", "cinematic tension"],
+      queryTerms: ["overwhelmed", "chaotic", "dark electronic", "music"],
       transitionTerms: ["spacious", "uncluttered"]
     }
   },
@@ -209,25 +214,20 @@ export function createRecommendationProfile(input) {
   const targetMoodRules = entry.targetMood
     ? RECOMMENDATION_RULES.moods[entry.targetMood]
     : sourceMoodRules;
+  const selectedMoodRules = targetMoodRules;
   const intensityBand = bandForValue(entry.intensity, RECOMMENDATION_RULES.intensityBands);
   const energyBand = bandForValue(entry.energy, RECOMMENDATION_RULES.energyBands);
   const isShift = entry.mode === "shift";
 
   const moodTerms = isShift
-    ? [...targetMoodRules.moodTerms]
-    : [...sourceMoodRules.moodTerms];
-  const intensityTerms = isShift
-    ? [...intensityBand.terms]
-    : [...intensityBand.terms];
+    ? [...selectedMoodRules.moodTerms]
+    : [...selectedMoodRules.moodTerms];
+  const intensityTerms = [...intensityBand.terms];
   const energyTerms = [...energyBand.terms];
   const styleTerms = isShift
-    ? uniqueTerms([...targetMoodRules.styleTerms, "music"])
-    : uniqueTerms([...sourceMoodRules.styleTerms, "music"]);
-  const queryTerms = isShift
-    ? null
-    : sourceMoodRules.queryTerms
-      ? uniqueTerms([...sourceMoodRules.queryTerms])
-      : null;
+    ? uniqueTerms([...selectedMoodRules.styleTerms, "music"])
+    : uniqueTerms([...selectedMoodRules.styleTerms, "music"]);
+  const queryTerms = uniqueTerms([...selectedMoodRules.queryTerms]);
   const reason = isShift
     ? `Selected to move from ${entry.mood} toward ${entry.targetMood} with ${intensityBand.name} intensity and ${energyBand.name} energy.`
     : `Selected to match ${entry.mood} with ${intensityBand.name} intensity and ${energyBand.name} energy.`;
@@ -236,6 +236,7 @@ export function createRecommendationProfile(input) {
     mode: entry.mode,
     currentMood: entry.mood,
     targetMood: entry.targetMood,
+    profileMood: isShift ? entry.targetMood : entry.mood,
     intensityBand: intensityBand.name,
     energyBand: energyBand.name,
     moodTerms,

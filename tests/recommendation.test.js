@@ -77,6 +77,7 @@ describe("recommendation rules", () => {
         assert.equal(firstProfile.mode, "shift");
         assert.equal(firstProfile.currentMood, mood);
         assert.equal(firstProfile.targetMood, targetMood);
+        assert.equal(firstProfile.profileMood, targetMood);
         assert.equal(firstProfile.intensityBand, "high");
         assert.equal(firstProfile.energyBand, "low");
         assert.ok(firstProfile.moodTerms.some((term) => (
@@ -200,6 +201,33 @@ describe("recommendation rules", () => {
     assert.match(shiftProfile.reason, /from overwhelmed toward focused/);
   });
 
+  it("uses the same canonical mood music profile for match moods and shift targets", () => {
+    for (const mood of SUPPORTED_MOODS) {
+      const matchProfile = createRecommendationProfile({
+        mood,
+        intensity: 5,
+        energy: 5,
+        musicMode: "match",
+        note: "private note must not affect profile"
+      });
+      const currentMood = mood === "happy" ? "calm" : "happy";
+      const shiftProfile = createRecommendationProfile({
+        mood: currentMood,
+        intensity: 5,
+        energy: 5,
+        musicMode: "shift",
+        targetMood: mood,
+        note: "different private note must not affect profile"
+      });
+
+      assert.equal(matchProfile.profileMood, mood);
+      assert.equal(shiftProfile.profileMood, mood);
+      assert.deepEqual(shiftProfile.moodTerms, matchProfile.moodTerms);
+      assert.deepEqual(shiftProfile.styleTerms, matchProfile.styleTerms);
+      assert.deepEqual(shiftProfile.queryTerms, matchProfile.queryTerms);
+    }
+  });
+
   it("does not include mood-note text anywhere in the profile", () => {
     const privateNote = "private dentist appointment at noon";
     const profile = createRecommendationProfile({
@@ -241,7 +269,7 @@ describe("recommendation rules", () => {
     }
   });
 
-  it("uses mood-congruent descriptors for anxious, tired, and angry match profiles", () => {
+  it("uses mood-congruent descriptors for anxious, tired, angry, and overwhelmed match profiles", () => {
     const anxious = createRecommendationProfile({
       mood: "anxious",
       intensity: 5,
@@ -260,6 +288,12 @@ describe("recommendation rules", () => {
       energy: 5,
       musicMode: "match"
     });
+    const overwhelmed = createRecommendationProfile({
+      mood: "overwhelmed",
+      intensity: 5,
+      energy: 5,
+      musicMode: "match"
+    });
 
     assert.ok(anxious.moodTerms.some((term) => ["anxious", "tense", "uneasy", "nervous", "restless"].includes(term)));
     assert.ok(anxious.queryTerms.some((term) => ["anxious", "tense", "dark ambient", "anxious instrumental"].includes(term)));
@@ -267,6 +301,8 @@ describe("recommendation rules", () => {
     assert.ok(tired.queryTerms.some((term) => ["tired", "slow", "low-energy", "tired mood music"].includes(term)));
     assert.ok(angry.moodTerms.some((term) => ["angry", "intense", "heavy", "aggressive"].includes(term)));
     assert.ok(angry.queryTerms.some((term) => ["angry", "intense", "heavy", "hard rock", "metal"].includes(term)));
+    assert.ok(overwhelmed.moodTerms.some((term) => ["overwhelmed", "overloaded", "chaotic", "turbulent", "frantic"].includes(term)));
+    assert.ok(overwhelmed.queryTerms.some((term) => ["overwhelmed", "sensory overload", "dark electronic", "cinematic tension"].includes(term)));
   });
 
   it("keeps shift mode focused on the selected target mood query terms", () => {
@@ -279,7 +315,7 @@ describe("recommendation rules", () => {
     });
 
     assert.equal(shiftProfile.targetMood, "calm");
-    assert.equal(shiftProfile.queryTerms, null);
+    assert.deepEqual(shiftProfile.queryTerms, RECOMMENDATION_RULES.moods.calm.queryTerms);
     assert.deepEqual(shiftProfile.moodTerms, RECOMMENDATION_RULES.moods.calm.moodTerms);
     assert.deepEqual(shiftProfile.styleTerms, [...RECOMMENDATION_RULES.moods.calm.styleTerms, "music"]);
   });

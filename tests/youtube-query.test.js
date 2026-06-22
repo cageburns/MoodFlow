@@ -6,6 +6,7 @@ import {
   createYouTubeClient,
   normalizeYouTubeSearchResponse
 } from "../src/integrations/youtube.client.js";
+import { SUPPORTED_MOODS } from "../src/services/mood.service.js";
 import { createRecommendationProfile } from "../src/services/recommendation.service.js";
 
 function sampleProfile() {
@@ -160,33 +161,40 @@ describe("YouTube query and client", () => {
     );
   });
 
-  it("uses curated match query descriptors for anxious, tired, and angry", () => {
-    const anxiousQuery = buildYouTubeSearchQuery(createRecommendationProfile({
-      mood: "anxious",
-      intensity: 5,
-      energy: 5,
-      musicMode: "match",
-      note: "private note should never be searched"
-    }));
-    const tiredQuery = buildYouTubeSearchQuery(createRecommendationProfile({
-      mood: "tired",
-      intensity: 5,
-      energy: 5,
-      musicMode: "match"
-    }));
-    const angryQuery = buildYouTubeSearchQuery(createRecommendationProfile({
-      mood: "angry",
-      intensity: 5,
-      energy: 5,
-      musicMode: "match"
-    }));
+  it("uses canonical query descriptors for every match mood and shift target", () => {
+    const expectedSignals = {
+      happy: /happy|joyful music|upbeat pop/,
+      calm: /calm|soothing|relaxing music/,
+      sad: /sad|melancholy|sad music/,
+      anxious: /anxious|tense|dark ambient|anxious instrumental/,
+      angry: /angry|intense|heavy|hard rock|metal/,
+      tired: /tired|slow|low-energy|tired mood music/,
+      focused: /focused|concentration|focus music/,
+      overwhelmed: /overwhelmed|chaotic|sensory overload|dark electronic|cinematic tension/
+    };
 
-    assert.match(anxiousQuery, /anxious/);
-    assert.match(anxiousQuery, /tense|dark ambient|anxious instrumental/);
-    assert.match(tiredQuery, /tired/);
-    assert.match(tiredQuery, /slow|low-energy|tired mood music/);
-    assert.match(angryQuery, /angry/);
-    assert.match(angryQuery, /intense|heavy|hard rock|metal/);
-    assert.equal(anxiousQuery.includes("private note"), false);
+    for (const mood of SUPPORTED_MOODS) {
+      const matchQuery = buildYouTubeSearchQuery(createRecommendationProfile({
+        mood,
+        intensity: 5,
+        energy: 5,
+        musicMode: "match",
+        note: "private note should never be searched"
+      }));
+      const currentMood = mood === "happy" ? "calm" : "happy";
+      const shiftQuery = buildYouTubeSearchQuery(createRecommendationProfile({
+        mood: currentMood,
+        intensity: 5,
+        energy: 5,
+        musicMode: "shift",
+        targetMood: mood,
+        note: "different private note should never be searched"
+      }));
+
+      assert.match(matchQuery, expectedSignals[mood]);
+      assert.equal(matchQuery, shiftQuery);
+      assert.equal(matchQuery.includes("private note"), false);
+      assert.equal(shiftQuery.includes("private note"), false);
+    }
   });
 });

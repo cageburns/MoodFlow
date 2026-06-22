@@ -6,6 +6,7 @@ import { createApp } from "../src/app.js";
 import { initializeDatabase } from "../src/data/db.js";
 import { createMoodRepository } from "../src/data/mood.repository.js";
 import { createMoodService } from "../src/services/mood.service.js";
+import { SUPPORTED_MOODS } from "../src/services/mood.service.js";
 import { createMusicSearchService } from "../src/services/music-search.service.js";
 import { createSearchCache } from "../src/utils/search-cache.js";
 
@@ -159,9 +160,14 @@ function youtubeCandidates() {
 
 function moodCandidate(mood) {
   const titles = {
+    happy: "Happy Joyful Music Official Audio",
+    calm: "Calm Relaxing Music Official Audio",
+    sad: "Sad Melancholy Acoustic Official Audio",
     anxious: "Anxious Instrumental Official Audio",
+    angry: "Angry Heavy Metal Official Video",
     tired: "Tired Mood Music Official Audio",
-    angry: "Angry Heavy Metal Official Video"
+    focused: "Focused Concentration Music Official Audio",
+    overwhelmed: "Overwhelmed Dark Electronic Cinematic Tension Official Audio"
   };
 
   return {
@@ -205,27 +211,12 @@ describe("music suggestions API", () => {
     assert.equal("score" in body.suggestions[0], false);
   });
 
-  it("returns suitable match-mode suggestions for anxious, tired, and angry", async () => {
-    const cases = [
-      {
-        mood: "anxious",
-        expectedTerms: ["anxious", "tense", "dark ambient", "anxious instrumental"]
-      },
-      {
-        mood: "tired",
-        expectedTerms: ["tired", "slow", "low-energy", "tired mood music"]
-      },
-      {
-        mood: "angry",
-        expectedTerms: ["angry", "intense", "heavy", "hard rock", "metal"]
-      }
-    ];
-
-    for (const moodCase of cases) {
+  it("returns suitable match-mode suggestions for every supported mood", async () => {
+    for (const supportedMood of SUPPORTED_MOODS) {
       let callCount = 0;
       let seenProfile;
       const mood = await createMood({
-        mood: moodCase.mood,
+        mood: supportedMood,
         intensity: 5,
         energy: 5,
         musicMode: "match",
@@ -237,11 +228,11 @@ describe("music suggestions API", () => {
           callCount += 1;
           seenProfile = profile;
           return [
-            moodCandidate(moodCase.mood),
+            moodCandidate(supportedMood),
             {
-              ...moodCandidate(moodCase.mood),
-              videoId: `${moodCase.mood}-reaction`,
-              title: `${moodCase.mood} song reaction`
+              ...moodCandidate(supportedMood),
+              videoId: `${supportedMood}-reaction`,
+              title: `${supportedMood} song reaction`
             }
           ];
         }
@@ -254,15 +245,98 @@ describe("music suggestions API", () => {
       assert.equal(response.status, 200);
       assert.equal(callCount, 1);
       assert.equal(body.profile.mode, "match");
-      assert.equal(body.profile.currentMood, moodCase.mood);
+      assert.equal(body.profile.currentMood, supportedMood);
       assert.equal(body.profile.targetMood, null);
       assert.equal(body.suggestions.length, 1);
-      assert.equal(body.suggestions[0].videoId, `${moodCase.mood}-official`);
+      assert.equal(body.suggestions[0].videoId, `${supportedMood}-official`);
       assert.equal(body.suggestions.some((item) => item.videoId.endsWith("reaction")), false);
-      assert.ok(moodCase.expectedTerms.some((term) => seenProfile.queryTerms.includes(term)));
+      assert.equal(seenProfile.profileMood, supportedMood);
+      assert.ok(seenProfile.queryTerms.length > 0);
       assert.equal(JSON.stringify(seenProfile).includes("sensitive note"), false);
       assert.equal(JSON.stringify(body).includes("sensitive note"), false);
     }
+  });
+
+  it("returns suitable shift-target suggestions for every supported mood", async () => {
+    for (const targetMood of SUPPORTED_MOODS) {
+      let callCount = 0;
+      let seenProfile;
+      const currentMood = targetMood === "happy" ? "calm" : "happy";
+      const mood = await createMood({
+        mood: currentMood,
+        intensity: 5,
+        energy: 5,
+        musicMode: "shift",
+        targetMood,
+        note: "sensitive shift note must stay local"
+      });
+      await startApp({
+        async search(profile) {
+          callCount += 1;
+          seenProfile = profile;
+          return [
+            moodCandidate(targetMood),
+            {
+              ...moodCandidate(targetMood),
+              videoId: `${targetMood}-analysis`,
+              title: `${targetMood} song analysis`
+            }
+          ];
+        }
+      });
+
+      const { response, body } = await postJson("/api/music/suggestions", {
+        moodEntryId: mood.id
+      });
+
+      assert.equal(response.status, 200);
+      assert.equal(callCount, 1);
+      assert.equal(body.profile.mode, "shift");
+      assert.equal(body.profile.currentMood, currentMood);
+      assert.equal(body.profile.targetMood, targetMood);
+      assert.equal(body.suggestions.length, 1);
+      assert.equal(body.suggestions[0].videoId, `${targetMood}-official`);
+      assert.equal(body.suggestions.some((item) => item.videoId.endsWith("analysis")), false);
+      assert.equal(seenProfile.profileMood, targetMood);
+      assert.ok(seenProfile.queryTerms.length > 0);
+      assert.equal(JSON.stringify(seenProfile).includes("sensitive shift note"), false);
+      assert.equal(JSON.stringify(body).includes("sensitive shift note"), false);
+    }
+  });
+
+  it("keeps cache keys distinct for relevant mood, mode, and target combinations", async () => {
+    let callCount = 0;
+    const anxiousMatch = await createMood({
+      mood: "anxious",
+      intensity: 5,
+      energy: 5,
+      musicMode: "match",
+      targetMood: null
+    });
+    const anxiousTarget = await createMood({
+      mood: "happy",
+      intensity: 5,
+      energy: 5,
+      musicMode: "shift",
+      targetMood: "anxious"
+    });
+    await startApp({
+      async search(profile) {
+        callCount += 1;
+        return [moodCandidate(profile.profileMood)];
+      }
+    });
+
+    const firstMatch = await postJson("/api/music/suggestions", { moodEntryId: anxiousMatch.id });
+    const secondMatch = await postJson("/api/music/suggestions", { moodEntryId: anxiousMatch.id });
+    const firstShift = await postJson("/api/music/suggestions", { moodEntryId: anxiousTarget.id });
+    const secondShift = await postJson("/api/music/suggestions", { moodEntryId: anxiousTarget.id });
+
+    assert.equal(firstMatch.body.cached, false);
+    assert.equal(secondMatch.body.cached, true);
+    assert.equal(firstShift.body.cached, false);
+    assert.equal(secondShift.body.cached, true);
+    assert.equal(callCount, 2);
   });
 
   it("uses the 15-minute cache for identical successful searches", async () => {

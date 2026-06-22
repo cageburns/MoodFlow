@@ -15,6 +15,7 @@ function publicProfile(profile) {
     mode: profile.mode,
     currentMood: profile.currentMood,
     targetMood: profile.targetMood,
+    profileMood: profile.profileMood,
     reason: profile.reason
   };
 }

@@ -2267,6 +2267,101 @@ Phase 7 is approved. The project is ready for independent final testing and clos
 
 Reviewer status: approved, project ready to close.
 
+---
+
+## Entry 33: Recommendation profile gap fix
+
+**Date:** 2026-06-22
+**Stage:** Post-Phase 7 maintenance
+**AI tool:** Codex
+**Model:** GPT-5
+**Agent role:** Implementer
+
+### Task
+
+Fixed remaining MoodFlow recommendation gaps across both `match` and `shift` paths for all supported moods.
+
+Observed issues:
+
+- `overwhelmed` returned no results in `match` mode.
+- moods such as `tired`, `anxious`, and `angry` could return results in `match` mode but fail when used as `shift` targets.
+
+### Representative prompts
+
+The user asked Codex to audit all supported moods in both recommendation paths, preserve the distinction between `match` and `shift`, avoid sending note text to YouTube, preserve caching and filtering behavior, and add matrix test coverage for all 8 moods.
+
+### Files or changes produced
+
+Updated:
+
+- `src/services/recommendation.service.js`
+- `src/services/music-search.service.js`
+- `tests/recommendation.test.js`
+- `tests/youtube-query.test.js`
+- `tests/music-api.test.js`
+- `docs/ai-development-log.md`
+
+### Implementation notes
+
+Root cause:
+
+- `match` mode had curated mood query terms, while `shift` mode often fell back to broader mood, intensity, energy, and style terms.
+- This made the same mood behave differently depending on whether it was the current mood or the target mood.
+- `overwhelmed` also used too many descriptors in one YouTube query, producing zero raw candidates even before filtering and ranking.
+
+Changes made:
+
+- Added canonical `queryTerms` for all 8 supported moods.
+- Made both `match` and `shift` use the same canonical mood music profile for the active recommendation mood.
+- Added `profileMood` so diagnostics and cache behavior identify the mood actually being searched.
+- Kept `shift` as target-mood selection, not emotional-opposite reinterpretation.
+- Tuned the `overwhelmed` search query to the concise mood-congruent terms `overwhelmed`, `chaotic`, `dark electronic`, and `music`.
+- Did not weaken hard filters or ranking rules.
+- Did not change API key handling or send mood note text to YouTube.
+- Preserved one uncached YouTube `search.list` request where possible.
+
+### Verification and tests
+
+Commands and checks run:
+
+- `npm test` -> failed on Windows before tests ran because `node --test tests/*.test.js` did not expand the glob in this shell.
+- `node --test tests` -> **106 passed, 0 failed**
+- sanitized live YouTube matrix audit for all 8 moods in `match` and all 8 moods as `shift` targets
+
+Live sanitized matrix result:
+
+- all 16 match/shift paths returned suitable results
+- `overwhelmed` match returned 10 raw candidates and 5 final suitable results
+- `overwhelmed` shift returned 10 raw candidates and 5 final suitable results
+- `anxious`, `tired`, and `angry` shift targets returned suitable results
+- no hard-filter rejection spike or duplicate-result problem was observed
+- no API key, `.env` value, or note text was printed
+
+Test coverage added or expanded:
+
+- all 8 moods in `match` mode
+- all 8 moods as `shift` targets
+- same target mood produces the same core profile regardless of current mood
+- suitable mocked results survive filtering and ranking for every mood
+- `overwhelmed` match and shift targets return suitable results
+- `tired`, `anxious`, and `angry` shift targets return suitable results
+- note text does not reach profile/query construction
+- cache keys distinguish relevant mood, mode, and target combinations
+
+### Problems or corrections
+
+The package test script still uses a glob pattern that this Windows shell does not expand reliably. The full suite was run successfully with `node --test tests`.
+
+No remaining mood combinations failed during the sanitized live matrix audit.
+
+### Evaluation
+
+The recommendation pipeline now uses one shared canonical mood-to-music profile map for both `match` and `shift`, while keeping mode semantics intact. Filtering, ranking, caching, controlled errors, and secret handling were preserved.
+
+### Human decision
+
+Pending user review. Changes were not committed.
+
 ## Entry N: [Activity name]
 
 **Date:**  
