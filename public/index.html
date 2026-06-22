@@ -68,6 +68,29 @@
           <div id="history-list" class="history-list"></div>
         </section>
       </section>
+
+      <section class="music-panel" aria-labelledby="music-title">
+        <div class="music-header">
+          <div>
+            <h2 id="music-title">Music suggestions</h2>
+            <p id="suggestions-status" class="status" role="status">Save a mood entry to request music suggestions.</p>
+          </div>
+          <button id="suggestions-button" type="button" disabled>Suggest music</button>
+        </div>
+
+        <div class="music-layout">
+          <div id="suggestions-list" class="suggestions-list" aria-live="polite"></div>
+
+          <section class="player-panel" aria-labelledby="player-title">
+            <h3 id="player-title">Player</h3>
+            <p id="player-status" class="status" role="status">Choose a suggestion to load the player.</p>
+            <p id="selected-suggestion" class="selected-suggestion"></p>
+            <div class="player-frame">
+              <div id="youtube-player"></div>
+            </div>
+          </section>
+        </div>
+      </section>
     </main>
   </body>
 </html>

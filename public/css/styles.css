@@ -42,6 +42,7 @@ h1 {
   grid-template-columns: minmax(280px, 360px) minmax(0, 1fr);
   gap: 32px;
   align-items: start;
+  margin-bottom: 40px;
 }
 
 .mood-form,
@@ -116,6 +117,11 @@ button {
   cursor: pointer;
 }
 
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
 button:focus-visible,
 input:focus-visible,
 select:focus-visible,
@@ -148,9 +154,94 @@ h2 {
   color: #52616f;
 }
 
+.music-panel {
+  display: grid;
+  gap: 20px;
+}
+
+.music-header,
+.music-layout {
+  display: grid;
+  gap: 20px;
+}
+
+.music-header {
+  grid-template-columns: minmax(0, 1fr) minmax(180px, 220px);
+  align-items: end;
+}
+
+.music-header h2,
+.player-panel h3 {
+  margin: 0 0 8px;
+}
+
+.music-layout {
+  grid-template-columns: minmax(280px, 1fr) minmax(280px, 420px);
+  align-items: start;
+}
+
+.suggestions-list {
+  display: grid;
+  gap: 14px;
+}
+
+.suggestion-card {
+  display: grid;
+  gap: 10px;
+  border-bottom: 1px solid #d3dce6;
+  padding-bottom: 14px;
+}
+
+.suggestion-card h3,
+.suggestion-card p,
+.selected-suggestion {
+  margin: 0;
+}
+
+.suggestion-card button,
+.suggestion-card a {
+  width: fit-content;
+}
+
+.suggestion-card a {
+  color: #2f6f6d;
+  font-weight: 700;
+}
+
+.suggestion-card.is-selected {
+  border-left: 4px solid #2f6f6d;
+  padding-left: 12px;
+}
+
+.suggestion-meta,
+.selected-suggestion {
+  color: #52616f;
+}
+
+.player-panel {
+  display: grid;
+  gap: 12px;
+}
+
+.player-frame {
+  width: 100%;
+  min-height: 200px;
+  aspect-ratio: 16 / 9;
+  background: #111827;
+}
+
+.player-frame iframe,
+.player-frame > div {
+  width: 100%;
+  height: 100%;
+  min-height: 200px;
+}
+
 @media (max-width: 720px) {
   .workspace,
-  .field-grid {
+  .field-grid,
+  .music-header,
+  .music-layout {
     grid-template-columns: 1fr;
   }
 

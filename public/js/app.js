@@ -1,11 +1,23 @@
 import { requestJson } from "./api.js";
 import { renderHistory } from "./history.js";
 import { initializeMoodForm } from "./mood-form.js";
+import { initializePlayer } from "./player.js";
+import { initializeSuggestions } from "./suggestions.js";
 
 const statusElement = document.querySelector("#health-status");
 const formStatusElement = document.querySelector("#form-status");
 const historyListElement = document.querySelector("#history-list");
 const moodForm = document.querySelector("#mood-form");
+const suggestionsController = initializeSuggestions({
+  button: document.querySelector("#suggestions-button"),
+  listElement: document.querySelector("#suggestions-list"),
+  statusElement: document.querySelector("#suggestions-status"),
+  player: initializePlayer({
+    container: document.querySelector("#youtube-player"),
+    statusElement: document.querySelector("#player-status"),
+    selectedElement: document.querySelector("#selected-suggestion")
+  })
+});
 
 async function showHealthStatus() {
   if (!statusElement) {
@@ -35,7 +47,8 @@ loadRecentEntries().catch(() => {
 initializeMoodForm({
   form: moodForm,
   statusElement: formStatusElement,
-  onSaved: () => {
+  onSaved: (entry) => {
+    suggestionsController.setMoodEntry(entry);
     loadRecentEntries().catch(() => {
       formStatusElement.textContent = "Mood entry saved, but recent entries could not be refreshed.";
     });

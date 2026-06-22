@@ -1509,6 +1509,253 @@ Phase 4 may be closed. Do not begin Phase 5 until separately assigned.
 
 ---
 
+## Entry 24: Phase 5 embedded playback
+
+**Date:** 2026-06-22
+**Stage:** Phase 5: Embedded Playback
+**AI tool:** Codex
+**Model:** GPT-5
+**Agent role:** Implementer
+
+### Task
+
+Implement Phase 5 only: frontend YouTube IFrame Player API integration, suggestion rendering and selection, reusable embedded player, player state/error handling, external YouTube fallback links, and mocked automated tests.
+
+### Representative prompts or decisions
+
+The implementer kept the YouTube Data API key and search integration server-side. The frontend receives only normalized suggestions from `/api/music/suggestions`, loads the IFrame API only after a user selects a suggestion, and reuses a single `YT.Player` instance for later selections. The implementation did not add charts, summaries, or Phase 6 work.
+
+### Files or changes produced
+
+Created:
+
+- `public/js/player.js`
+- `public/js/suggestions.js`
+- `tests/player-frontend.test.js`
+- `tests/suggestions-frontend.test.js`
+
+Updated:
+
+- `public/index.html`
+- `public/js/app.js`
+- `public/css/styles.css`
+- `docs/ai-development-log.md`
+
+### Verification and tests
+
+Commands and checks run:
+
+- `npm test` -> **57 passed, 0 failed**
+- `git diff --check` -> passed with LF-to-CRLF warnings only
+- browser/API-key exposure scan -> no `YOUTUBE_API_KEY`, YouTube Data API URL, or API-key query usage in browser code
+- Phase 6 scope scan for charts/summary code under `src`, `public`, and `tests` -> no matches
+- tracked-file exact local YouTube key scan -> `Tracked files containing local YouTube key: 0`
+- `npm ls --depth=0` -> no new dependencies; dependencies remain `better-sqlite3`, `dotenv`, and `express`
+
+Automated tests verify:
+
+- the YouTube IFrame API script is not loaded on page/module initialization
+- selecting a suggestion loads the IFrame API and calls `loadVideoById`
+- the player uses the configured browser origin
+- switching suggestions reuses the same player instance
+- player errors show controlled messages and another suggestion can be tried
+- IFrame API initialization failure shows a controlled message
+- suggestions are requested only after an explicit button click
+- duplicate in-flight suggestion clicks do not create parallel requests
+- selected suggestions are marked in the UI
+- external YouTube fallback links are rendered with safe link attributes
+- controlled suggestion API errors render readable UI messages
+- previous Phase 1 through Phase 4 tests still pass
+
+### Problems or corrections
+
+No live browser playback check was run in this implementer pass. Player behavior was verified with deterministic mocks for browser DOM, YouTube API script loading, `YT.Player`, player state, and player errors. Full browser/manual playback remains appropriate for independent testing and final verification.
+
+Node and npm commands were run with approval outside the filesystem sandbox because this environment blocks Node from resolving user-profile paths during npm execution.
+
+### Acceptance-criteria status
+
+Passed:
+
+- selecting a result loads it into the player
+- no automatic sound starts when the page opens because the IFrame API and video load only after a selected suggestion
+- changing the selection changes the loaded video in one reusable player
+- player errors show useful messages
+- the user can try another suggestion after an error
+- each suggestion includes an external YouTube fallback link
+- the player area uses a responsive 16:9 frame with a 200px minimum height
+- the YouTube API key remains server-side
+- recommendation and YouTube search-service boundaries are preserved
+- automated tests use mocked browser/player behavior
+- all relevant tests pass
+
+Not implemented by design:
+
+- Phase 6 charts, date filters, and summary logic
+
+### Evaluation
+
+Phase 5 implementation is ready for independent testing.
+
+### Human decision
+
+Pending tester and reviewer evaluation. Do not begin Phase 6 until separately assigned.
+
+---
+
+## Entry 25: Phase 5 independent testing
+
+**Date:** 2026-06-22
+**Stage:** Phase 5: Embedded Playback
+**AI tool:** Codex
+**Model:** GPT-5
+**Agent role:** Tester
+
+### Task
+
+Independently test Phase 5 against its documented acceptance criteria, focusing on YouTube IFrame Player API initialization, selected-result playback, switching between recommendations, player error handling, fallback links, server-side API-key boundaries, mocked browser/player tests, previous-phase regression coverage, and avoiding Phase 6 scope.
+
+### Representative prompts or decisions
+
+The tester treated Phase 5 as frontend embedded playback only. Deterministic mocks were used for the browser document, YouTube IFrame API script loading, `YT.Player`, player state changes, player errors, suggestion rendering, and suggestion API responses. No live YouTube playback or quota-consuming test was run.
+
+### Files or changes produced
+
+Updated:
+
+- `tests/player-frontend.test.js`
+- `tests/suggestions-frontend.test.js`
+- `docs/ai-development-log.md`
+
+Inspected:
+
+- `.codex/agents/tester.toml`
+- `.agents/skills/moodflow-phase-workflow/SKILL.md`
+- Phase 5 sections in `docs/project-plan.md`, `docs/requirements.md`, and `docs/architecture.md`
+- latest Phase 5 implementer handoff in this log
+- current Git status and Phase 5 diff
+- `public/js/player.js`
+- `public/js/suggestions.js`
+- `public/js/app.js`
+- `public/index.html`
+- `public/css/styles.css`
+
+### Verification and tests
+
+Commands and checks run:
+
+- `npm test` -> **59 passed, 0 failed**
+- `git diff --check` -> passed with LF-to-CRLF warnings only
+- `rg -n "YOUTUBE_API_KEY|googleapis|youtube/v3|key=" public src tests --glob '!node_modules/**'` -> no browser-code key exposure; matches were limited to backend config/integration and backend tests
+- `rg -n "Chart|charts|summary|/api/moods/summary" src public tests --glob '!node_modules/**'` -> no Phase 6 chart/summary scope found
+- exact local `YOUTUBE_API_KEY` tracked-file scan -> `Tracked files containing local YouTube key: 0`
+- `git check-ignore .env node_modules/ data/example.sqlite` -> all ignored
+- `git ls-files .env data/*.sqlite` -> no tracked env/database files
+- `npm ls --depth=0` -> dependencies remain `better-sqlite3`, `dotenv`, and `express`
+
+Additional tester coverage added:
+
+- exact unavailable-video player error message before retrying another suggestion
+- player state-change messages for buffering, playing, and ended states
+- `clearPlayer()` resets selected text/status and stops the reusable player
+- suggestion selection can switch from one result to another deterministically
+- a new suggestion request clears stale player state and removes previous selection
+
+### Problems or corrections
+
+No production defects were found and no production code was changed by the tester. Phase 5 playback behavior was verified with deterministic mocks rather than a live browser/IFrame playback session, which keeps tests stable and avoids external network dependency.
+
+### Acceptance-criteria status
+
+Passed:
+
+- YouTube IFrame Player API loads only after a selected suggestion
+- no automatic sound starts on page open
+- selecting a result loads its video ID into the player
+- changing selection loads the new video ID in the same reusable player
+- player ready, state-change, and error events produce controlled UI messages
+- users can try another suggestion after an unavailable-video error
+- each suggestion includes an external YouTube fallback link
+- browser code contains no `YOUTUBE_API_KEY` or YouTube Data API key usage
+- frontend player logic stays separated from backend YouTube search integration
+- automated tests use deterministic mocked player/browser behavior
+- previous Phase 1 through Phase 4 tests still pass
+- no Phase 6 chart or summary work was added
+
+### Evaluation
+
+Phase 5 passed independent tester verification with the noted limitation that real browser playback was not exercised in this pass.
+
+### Human decision
+
+Ready for reviewer evaluation. Do not begin Phase 6 until separately assigned.
+
+---
+
+## Entry 26: Phase 5 reviewer approval
+
+**Date:** 2026-06-22
+**Stage:** Phase 5: Embedded Playback
+**AI tool:** Codex
+**Model:** GPT-5
+**Agent role:** Reviewer
+
+### Task
+
+Performed a read-only review of Phase 5 against the documented embedded playback acceptance criteria.
+
+### Representative prompts
+
+The reviewer stayed scoped to Phase 5 and did not modify implementation, tests, or configuration. The review focused on YouTube IFrame Player API integration, recommendation selection and switching, player error handling, fallback behavior, tester limitations, API-key security, mocked coverage, architecture boundaries, and absence of Phase 6 scope.
+
+### Files or changes produced
+
+Reviewed:
+
+- `.codex/agents/reviewer.toml`
+- `.agents/skills/moodflow-phase-workflow/SKILL.md`
+- `docs/project-plan.md`
+- `docs/requirements.md`
+- `docs/architecture.md`
+- `docs/youtube-spike.md`
+- `docs/ai-development-log.md`
+- `public/js/player.js`
+- `public/js/suggestions.js`
+- `public/js/app.js`
+- `public/index.html`
+- `public/css/styles.css`
+- `tests/player-frontend.test.js`
+- `tests/suggestions-frontend.test.js`
+
+### Verification and tests
+
+Read-only checks run:
+
+- `npm test` -> **59 passed, 0 failed**
+- `git diff --check` -> passed with LF-to-CRLF warnings only
+- browser/API-key exposure scan -> no browser-code exposure
+- Phase 6 chart/scope scan -> no matches
+- exact local YouTube key tracked-file scan -> `Tracked files containing local YouTube key: 0`
+- `git check-ignore .env node_modules/ data/example.sqlite` -> all ignored
+- `git ls-files .env data/*.sqlite` -> no tracked env/database files
+- `npm ls --depth=0` -> no new dependencies
+
+### Problems or corrections
+
+No critical, high, medium, or low findings were identified.
+
+The tester limitation of no live browser playback in this pass is accepted as non-blocking because deterministic mocked player tests cover the Phase 5 behavior and final live end-to-end playback remains part of Phase 7.
+
+### Evaluation
+
+All Phase 5 acceptance criteria are satisfied. Phase 5 is approved and ready to close.
+
+### Human decision
+
+Phase 5 may be closed. Do not begin Phase 6 until separately assigned.
+
+---
+
 ## Template for future entries
 
 ## Entry N: [Activity name]
