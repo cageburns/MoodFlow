@@ -1,13 +1,18 @@
-import { requestJson } from "./api.js";
-import { renderHistory } from "./history.js";
+import { initializeHistory } from "./history.js";
 import { initializeMoodForm } from "./mood-form.js";
 import { initializePlayer } from "./player.js";
 import { initializeSuggestions } from "./suggestions.js";
 
 const statusElement = document.querySelector("#health-status");
 const formStatusElement = document.querySelector("#form-status");
-const historyListElement = document.querySelector("#history-list");
 const moodForm = document.querySelector("#mood-form");
+const historyController = initializeHistory({
+  form: document.querySelector("#history-controls"),
+  listElement: document.querySelector("#history-list"),
+  statusElement: document.querySelector("#history-status"),
+  chartCanvas: document.querySelector("#history-chart"),
+  chartStatusElement: document.querySelector("#chart-status")
+});
 const suggestionsController = initializeSuggestions({
   button: document.querySelector("#suggestions-button"),
   listElement: document.querySelector("#suggestions-list"),
@@ -35,13 +40,12 @@ async function showHealthStatus() {
 }
 
 async function loadRecentEntries() {
-  const result = await requestJson("/api/moods");
-  renderHistory(result.entries, historyListElement);
+  await historyController.loadRecent();
 }
 
 showHealthStatus();
 loadRecentEntries().catch(() => {
-  renderHistory([], historyListElement);
+  document.querySelector("#history-status").textContent = "Recent entries could not be loaded.";
 });
 
 initializeMoodForm({

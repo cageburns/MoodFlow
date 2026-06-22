@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>MoodFlow</title>
     <link rel="stylesheet" href="/css/styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js" defer></script>
     <script type="module" src="/js/app.js"></script>
   </head>
   <body>
@@ -65,6 +66,45 @@
 
         <section aria-labelledby="history-title">
           <h2 id="history-title">Recent entries</h2>
+          <form id="history-controls" class="history-controls">
+            <fieldset class="mode-group">
+              <legend>History view</legend>
+              <label>
+                <input type="radio" name="historyMode" value="day" checked>
+                Day
+              </label>
+              <label>
+                <input type="radio" name="historyMode" value="range">
+                Date range
+              </label>
+            </fieldset>
+
+            <div class="field" data-history-day>
+              <label for="history-day">Day</label>
+              <input id="history-day" name="historyDay" type="date">
+            </div>
+
+            <div class="field-grid" data-history-range hidden>
+              <div class="field">
+                <label for="history-from">Start date</label>
+                <input id="history-from" name="historyFrom" type="date">
+              </div>
+              <div class="field">
+                <label for="history-to">End date</label>
+                <input id="history-to" name="historyTo" type="date">
+              </div>
+            </div>
+
+            <button type="submit">Update history</button>
+          </form>
+          <p id="history-status" class="status" role="status">Loading recent mood entries...</p>
+          <div class="chart-panel" aria-labelledby="chart-title">
+            <h3 id="chart-title">Mood trends</h3>
+            <p id="chart-status" class="status" role="status">Choose a history period to draw a chart.</p>
+            <div class="chart-frame">
+              <canvas id="history-chart" aria-label="Mood intensity and energy trend chart" role="img"></canvas>
+            </div>
+          </div>
           <div id="history-list" class="history-list"></div>
         </section>
       </section>

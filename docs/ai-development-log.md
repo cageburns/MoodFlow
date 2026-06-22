@@ -1756,6 +1756,265 @@ Phase 5 may be closed. Do not begin Phase 6 until separately assigned.
 
 ---
 
+## Entry 27: Phase 6 mood history and charts
+
+**Date:** 2026-06-22
+**Stage:** Phase 6: Mood History and Charts
+**AI tool:** Codex
+**Model:** GPT-5
+**Agent role:** Implementer
+
+### Task
+
+Implemented Phase 6 only: selected-day history filtering, date-range filtering, summary data for charts, frontend history controls, Chart.js rendering, empty-state handling, local-date to UTC request conversion, and automated tests.
+
+### Representative prompts
+
+The implementation kept the existing Express/service/repository structure. The browser converts date-input selections into UTC `from`/`to` boundaries before calling the API, and sends the browser IANA time zone to `/api/moods/summary` so range summaries can group entries by local day. Charts use Chart.js when available, while the readable text history remains the primary non-chart representation and stays visible for empty periods.
+
+### Files or changes produced
+
+Created:
+
+- `src/services/summary.service.js`
+- `public/js/charts.js`
+- `tests/summary-service.test.js`
+
+Updated:
+
+- `src/app.js`
+- `src/server.js`
+- `src/routes/moods.routes.js`
+- `src/services/mood.service.js`
+- `src/data/mood.repository.js`
+- `public/index.html`
+- `public/js/app.js`
+- `public/js/history.js`
+- `public/css/styles.css`
+- `tests/mood-api.test.js`
+- `tests/mood-frontend.test.js`
+- `tests/mood-repository.test.js`
+- `docs/ai-development-log.md`
+
+### Verification and tests
+
+Commands and checks run:
+
+- `npm test` -> **69 passed, 0 failed**
+- `git diff --check` -> passed with LF-to-CRLF warnings only
+- `rg -n "YOUTUBE_API_KEY|googleapis|youtube/v3|key=" public src tests docs --glob '!node_modules/**'` -> expected backend/docs/test references only
+- `rg -n "YOUTUBE_API_KEY|googleapis|youtube/v3|key=" public --glob '!node_modules/**'` -> no browser-code matches
+- exact local `YOUTUBE_API_KEY` tracked-file scan -> `Tracked files containing local YouTube key: 0`
+- `git check-ignore .env node_modules/ data/example.sqlite` -> all ignored
+- `git ls-files .env data/*.sqlite` -> no tracked env/database files
+- `npm ls --depth=0` -> no new npm dependencies
+- `git status --short` -> Phase 6 implementation files modified/created; no commits made
+
+Automated tests now cover:
+
+- repository UTC range filtering with chronological ordering
+- API `GET /api/moods?from&to` filtered history
+- API `GET /api/moods/summary` for day and range modes
+- invalid history date-range validation
+- day summary points for individual entries
+- range summary grouping by browser-local day and average intensity/energy
+- frontend local-date to UTC request range construction
+- frontend selected-day history loading
+- mocked Chart.js line-chart rendering
+- empty-period text and chart states
+- all previous Phase 1 through Phase 5 regression tests
+
+### Problems or corrections
+
+No blockers remain. Chart.js is loaded in the browser from the documented Chart.js UMD build; automated tests use a mocked Chart constructor and do not require network access.
+
+### Evaluation
+
+Passed:
+
+- one selected day returns entries chronologically
+- date ranges return one aggregate summary point per local day containing data
+- UTC storage is converted through browser-local date boundaries and display formatting
+- empty periods show readable empty states instead of broken charts
+- readable text history remains available alongside charts
+- earlier mood, recommendation, YouTube search, cache, and player tests still pass
+
+Not implemented by design:
+
+- Phase 7 final documentation, screenshots, and final manual end-to-end verification
+
+### Human decision
+
+Phase 6 is ready for independent tester evaluation. Do not begin Phase 7 until separately assigned.
+
+---
+
+## Entry 28: Phase 6 independent testing
+
+**Date:** 2026-06-22
+**Stage:** Phase 6: Mood History and Charts
+**AI tool:** Codex
+**Model:** GPT-5
+**Agent role:** Tester
+
+### Task
+
+Independently tested Phase 6 against the documented acceptance criteria, focusing on selected-day and date-range history queries, ordering and filtering, chart-ready API data, Chart.js rendering, invalid date ranges, empty states, UTC storage and browser-local display, regression coverage, and absence of Phase 7 scope.
+
+### Representative prompts
+
+The tester kept all changes test-only except for this log entry. Additional deterministic tests were added for chart rendering and replacement, summary endpoint validation, and frontend invalid date-range handling before network requests are made.
+
+### Files or changes produced
+
+Created:
+
+- `tests/charts-frontend.test.js`
+
+Updated:
+
+- `tests/mood-api.test.js`
+- `tests/mood-frontend.test.js`
+- `docs/ai-development-log.md`
+
+Inspected:
+
+- `.codex/agents/tester.toml`
+- `.agents/skills/moodflow-phase-workflow/SKILL.md`
+- Phase 6 sections in `docs/project-plan.md`, `docs/requirements.md`, and `docs/architecture.md`
+- latest Phase 6 implementer handoff in this log
+- current Git status and Phase 6 diff
+- `src/services/summary.service.js`
+- `src/routes/moods.routes.js`
+- `src/services/mood.service.js`
+- `src/data/mood.repository.js`
+- `public/js/history.js`
+- `public/js/charts.js`
+- `public/index.html`
+- existing Phase 6 API, repository, summary, and frontend tests
+
+### Verification and tests
+
+Commands and checks run:
+
+- initial `npm test` -> **73 passed, 1 failed** because a newly added tester test set invalid date values before `initializeHistory()` seeded the form defaults; this was corrected in the test to set invalid values after initialization
+- final `npm test` -> **74 passed, 0 failed**
+- `git diff --check` -> passed with LF-to-CRLF warnings only
+- `rg -n "YOUTUBE_API_KEY|googleapis|youtube/v3|key=" public --glob '!node_modules/**'` -> no browser-code matches
+- `rg -n "README|screenshot|assignment|fresh clone|Phase 7|final end-to-end" public src tests --glob '!node_modules/**'` -> no Phase 7-only app/test scope found
+- exact local `YOUTUBE_API_KEY` tracked-file scan -> `Tracked files containing local YouTube key: 0`
+- `git check-ignore .env node_modules/ data/example.sqlite` -> all ignored
+- `git ls-files .env data/*.sqlite` -> no tracked env/database files
+- `npm ls --depth=0` -> no new npm dependencies
+- `git status --short` -> expected Phase 6 implementation files plus tester test/log changes; no commits made
+
+Additional tester coverage added:
+
+- Chart.js range summaries render average intensity and average energy datasets
+- replacing a history chart destroys the previous chart instance
+- missing Chart.js reports a text fallback while preserving text history availability
+- invalid summary mode returns a controlled `VALIDATION_ERROR`
+- invalid summary time zone returns a controlled `VALIDATION_ERROR`
+- invalid frontend date ranges show a readable message and do not request history or summary data
+
+### Problems or corrections
+
+No production defects were found and no production code was changed by the tester.
+
+The only failed check was caused by the tester's initial test setup and was corrected before the final passing run.
+
+### Acceptance-criteria status
+
+Passed:
+
+- one selected day can show entries chronologically
+- date ranges return one aggregate chart point per local day containing data
+- UTC timestamps are converted through browser-local request boundaries and display formatting
+- invalid date ranges are rejected or handled with readable messages
+- empty periods show text and chart empty states instead of broken charts
+- charts render intensity and energy trends for day and range summaries using mocked Chart.js behavior
+- readable text history remains available beside or below chart output
+- previous Phase 1 through Phase 5 regression tests still pass
+- no browser API-key exposure, new external integration, dependency change, or Phase 7 work was introduced
+
+### Evaluation
+
+Phase 6 passed independent tester verification. The remaining visual layout/browser rendering confirmation is appropriate for later final manual verification and is not blocking for reviewer handoff.
+
+### Human decision
+
+Ready for reviewer evaluation. Do not begin Phase 7 until separately assigned.
+
+---
+
+## Entry 29: Phase 6 reviewer approval
+
+**Date:** 2026-06-22
+**Stage:** Phase 6: Mood History and Charts
+**AI tool:** Codex
+**Model:** GPT-5
+**Agent role:** Reviewer
+
+### Task
+
+Performed a read-only review of Phase 6 against the documented mood-history and chart acceptance criteria.
+
+### Representative prompts
+
+The reviewer stayed scoped to Phase 6 and did not modify implementation, tests, or configuration. The review focused on day and date-range history queries, filtering and ordering, chart-ready response data, Chart.js integration, invalid date-range and empty-state behavior, UTC/browser-local handling, regression coverage, tester limitations, and absence of Phase 7 scope.
+
+### Files or changes produced
+
+Reviewed:
+
+- `.codex/agents/reviewer.toml`
+- `.agents/skills/moodflow-phase-workflow/SKILL.md`
+- `docs/project-plan.md`
+- `docs/requirements.md`
+- `docs/architecture.md`
+- `docs/youtube-spike.md`
+- `docs/ai-development-log.md`
+- `src/services/summary.service.js`
+- `src/services/mood.service.js`
+- `src/routes/moods.routes.js`
+- `src/data/mood.repository.js`
+- `public/js/history.js`
+- `public/js/charts.js`
+- `public/index.html`
+- `tests/summary-service.test.js`
+- `tests/charts-frontend.test.js`
+- `tests/mood-api.test.js`
+- `tests/mood-frontend.test.js`
+
+### Verification and tests
+
+Read-only checks run:
+
+- `npm test` -> **74 passed, 0 failed**
+- `git diff --check` -> passed with LF-to-CRLF warnings only
+- browser API-key exposure scan under `public/` -> no matches
+- Phase 7 scope scan under `public src tests` -> no matches
+- exact local YouTube key tracked-file scan -> `Tracked files containing local YouTube key: 0`
+- `git check-ignore .env node_modules/ data/example.sqlite` -> all ignored
+- `git ls-files .env data/*.sqlite` -> no tracked env/database files
+- `npm ls --depth=0` -> no new dependencies
+
+### Problems or corrections
+
+No critical, high, medium, or low findings were identified.
+
+The tester limitation that live visual browser/canvas rendering remains for final manual verification is accepted as non-blocking because deterministic tests cover API data, local-date conversion, Chart.js configuration, chart replacement, empty states, and text-history fallback.
+
+### Evaluation
+
+All Phase 6 acceptance criteria are satisfied. Phase 6 is approved and ready to close.
+
+### Human decision
+
+Phase 6 may be closed. Do not begin Phase 7 until separately assigned.
+
+---
+
 ## Template for future entries
 
 ## Entry N: [Activity name]

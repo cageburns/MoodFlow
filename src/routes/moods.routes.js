@@ -1,6 +1,6 @@
 import { Router } from "express";
 
-export function createMoodsRouter(moodService) {
+export function createMoodsRouter(moodService, summaryService) {
   const router = Router();
 
   router.post("/", (req, res, next) => {
@@ -17,8 +17,26 @@ export function createMoodsRouter(moodService) {
       const limit = req.query.limit === undefined
         ? undefined
         : Number(req.query.limit);
-      const entries = moodService.listRecentMoodEntries(limit);
+      const entries = moodService.listMoodEntries({
+        limit,
+        from: req.query.from,
+        to: req.query.to
+      });
       res.status(200).json({ entries });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.get("/summary", (req, res, next) => {
+    try {
+      const summary = summaryService.getMoodSummary({
+        mode: req.query.mode,
+        from: req.query.from,
+        to: req.query.to,
+        timeZone: req.query.timeZone
+      });
+      res.status(200).json(summary);
     } catch (error) {
       next(error);
     }

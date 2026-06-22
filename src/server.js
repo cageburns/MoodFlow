@@ -5,6 +5,7 @@ import { createMoodRepository } from "./data/mood.repository.js";
 import { createYouTubeClient } from "./integrations/youtube.client.js";
 import { createMusicSearchService } from "./services/music-search.service.js";
 import { createMoodService } from "./services/mood.service.js";
+import { createSummaryService } from "./services/summary.service.js";
 import { createSearchCache } from "./utils/search-cache.js";
 
 let config;
@@ -19,6 +20,7 @@ try {
 const db = openDatabase(config.databasePath);
 const moodRepository = createMoodRepository(db);
 const moodService = createMoodService(moodRepository);
+const summaryService = createSummaryService(moodRepository);
 const youtubeClient = createYouTubeClient({
   apiKey: config.youtube.apiKey,
   regionCode: config.youtube.regionCode,
@@ -31,7 +33,7 @@ const musicSearchService = createMusicSearchService({
   searchCache: createSearchCache(),
   cacheTtlMs: config.youtube.cacheTtlMs
 });
-const app = createApp({ moodService, musicSearchService });
+const app = createApp({ moodService, summaryService, musicSearchService });
 
 app.listen(config.port, () => {
   console.log(`MoodFlow listening on http://localhost:${config.port}`);

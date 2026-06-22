@@ -50,6 +50,13 @@ export function createMoodRepository(db) {
     LIMIT ?
   `);
 
+  const listBetween = db.prepare(`
+    SELECT id, mood, intensity, energy, note, music_mode, target_mood, created_at
+    FROM mood_entries
+    WHERE created_at >= ? AND created_at < ?
+    ORDER BY datetime(created_at) ASC, id ASC
+  `);
+
   return {
     create(entry) {
       const result = insertEntry.run(entry);
@@ -58,6 +65,10 @@ export function createMoodRepository(db) {
 
     listRecent(limit = 20) {
       return listRecent.all(limit).map(toMoodEntry);
+    },
+
+    listBetween(from, to) {
+      return listBetween.all(from, to).map(toMoodEntry);
     },
 
     getById(id) {

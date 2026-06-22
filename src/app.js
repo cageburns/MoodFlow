@@ -9,7 +9,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const publicDir = path.join(__dirname, "..", "public");
 
-export function createApp({ moodService, musicSearchService } = {}) {
+export function createApp({ moodService, summaryService, musicSearchService } = {}) {
   const app = express();
 
   app.disable("x-powered-by");
@@ -21,7 +21,7 @@ export function createApp({ moodService, musicSearchService } = {}) {
   });
 
   if (moodService) {
-    app.use("/api/moods", createMoodsRouter(moodService));
+    app.use("/api/moods", createMoodsRouter(moodService, summaryService));
   }
 
   if (musicSearchService) {

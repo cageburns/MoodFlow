@@ -46,6 +46,7 @@ h1 {
 }
 
 .mood-form,
+.history-controls,
 .history-list {
   display: grid;
   gap: 16px;
@@ -147,6 +148,28 @@ h2 {
 .history-item {
   display: grid;
   gap: 8px;
+}
+
+.chart-panel {
+  display: grid;
+  gap: 12px;
+  margin: 20px 0;
+}
+
+.chart-panel h3 {
+  margin: 0;
+}
+
+.chart-frame {
+  position: relative;
+  width: 100%;
+  height: 280px;
+  min-height: 240px;
+}
+
+.chart-frame canvas {
+  width: 100%;
+  height: 100%;
 }
 
 .history-meta,

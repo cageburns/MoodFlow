@@ -66,4 +66,47 @@ describe("mood repository", () => {
       db.close();
     }
   });
+
+  it("lists entries inside a UTC range chronologically", () => {
+    const { db, repository } = createRepository();
+
+    try {
+      repository.create({
+        mood: "calm",
+        intensity: 3,
+        energy: 2,
+        note: "",
+        musicMode: "match",
+        targetMood: null,
+        createdAt: "2026-06-20T23:00:00.000Z"
+      });
+      repository.create({
+        mood: "focused",
+        intensity: 6,
+        energy: 7,
+        note: "",
+        musicMode: "match",
+        targetMood: null,
+        createdAt: "2026-06-21T09:00:00.000Z"
+      });
+      repository.create({
+        mood: "happy",
+        intensity: 8,
+        energy: 9,
+        note: "",
+        musicMode: "match",
+        targetMood: null,
+        createdAt: "2026-06-21T11:00:00.000Z"
+      });
+
+      const entries = repository.listBetween(
+        "2026-06-21T00:00:00.000Z",
+        "2026-06-22T00:00:00.000Z"
+      );
+
+      assert.deepEqual(entries.map((entry) => entry.mood), ["focused", "happy"]);
+    } finally {
+      db.close();
+    }
+  });
 });

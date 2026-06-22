@@ -14,11 +14,11 @@ export const MUSIC_MODES = ["match", "shift"];
 const supportedMoodSet = new Set(SUPPORTED_MOODS);
 const musicModeSet = new Set(MUSIC_MODES);
 
-function createValidationError(details) {
+export function createValidationError(details, message = "Invalid mood entry.") {
   const error = new Error("Invalid mood entry.");
   error.statusCode = 400;
   error.code = "VALIDATION_ERROR";
-  error.publicMessage = "Invalid mood entry.";
+  error.publicMessage = message;
   error.details = details;
   return error;
 }
@@ -121,6 +121,56 @@ export function validateMoodInput(input) {
   };
 }
 
+function parseUtcInstant(value, field) {
+  if (typeof value !== "string" || value.trim() === "") {
+    return {
+      value: null,
+      error: {
+        field,
+        message: `${field} must be a UTC ISO timestamp.`
+      }
+    };
+  }
+
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) {
+    return {
+      value: null,
+      error: {
+        field,
+        message: `${field} must be a valid UTC ISO timestamp.`
+      }
+    };
+  }
+
+  return {
+    value: parsed.toISOString(),
+    error: null
+  };
+}
+
+export function validateHistoryRange(input = {}) {
+  const fromResult = parseUtcInstant(input.from, "from");
+  const toResult = parseUtcInstant(input.to, "to");
+  const details = [fromResult.error, toResult.error].filter(Boolean);
+
+  if (details.length === 0 && new Date(fromResult.value) >= new Date(toResult.value)) {
+    details.push({
+      field: "to",
+      message: "to must be later than from."
+    });
+  }
+
+  if (details.length > 0) {
+    throw createValidationError(details, "Invalid history date range.");
+  }
+
+  return {
+    from: fromResult.value,
+    to: toResult.value
+  };
+}
+
 export function createMoodService(repository, now = () => new Date()) {
   return {
     createMoodEntry(input) {
@@ -136,6 +186,15 @@ export function createMoodService(repository, now = () => new Date()) {
         ? limit
         : 20;
       return repository.listRecent(safeLimit);
+    },
+
+    listMoodEntries({ limit, from, to } = {}) {
+      if (from !== undefined || to !== undefined) {
+        const range = validateHistoryRange({ from, to });
+        return repository.listBetween(range.from, range.to);
+      }
+
+      return this.listRecentMoodEntries(limit);
     }
   };
 }
