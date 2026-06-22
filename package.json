@@ -4,6 +4,9 @@
   "private": true,
   "type": "module",
   "description": "Local single-user mood logging and music discovery app.",
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "start": "node src/server.js",
     "test": "node --test tests"
