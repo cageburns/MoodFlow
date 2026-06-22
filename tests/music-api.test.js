@@ -157,6 +157,22 @@ function youtubeCandidates() {
   ];
 }
 
+function moodCandidate(mood) {
+  const titles = {
+    anxious: "Anxious Instrumental Official Audio",
+    tired: "Tired Mood Music Official Audio",
+    angry: "Angry Heavy Metal Official Video"
+  };
+
+  return {
+    videoId: `${mood}-official`,
+    title: titles[mood],
+    channelTitle: `${mood} Artist - Topic`,
+    thumbnailUrl: null,
+    youtubeUrl: `https://www.youtube.com/watch?v=${mood}-official`
+  };
+}
+
 describe("music suggestions API", () => {
   it("returns up to five ranked suggestions from a saved mood entry", async () => {
     let callCount = 0;
@@ -187,6 +203,66 @@ describe("music suggestions API", () => {
     assert.equal(JSON.stringify(seenProfile).includes("secret private mood note"), false);
     assert.equal(JSON.stringify(body).includes("secret private mood note"), false);
     assert.equal("score" in body.suggestions[0], false);
+  });
+
+  it("returns suitable match-mode suggestions for anxious, tired, and angry", async () => {
+    const cases = [
+      {
+        mood: "anxious",
+        expectedTerms: ["anxious", "tense", "dark ambient", "anxious instrumental"]
+      },
+      {
+        mood: "tired",
+        expectedTerms: ["tired", "slow", "low-energy", "tired mood music"]
+      },
+      {
+        mood: "angry",
+        expectedTerms: ["angry", "intense", "heavy", "hard rock", "metal"]
+      }
+    ];
+
+    for (const moodCase of cases) {
+      let callCount = 0;
+      let seenProfile;
+      const mood = await createMood({
+        mood: moodCase.mood,
+        intensity: 5,
+        energy: 5,
+        musicMode: "match",
+        targetMood: null,
+        note: "sensitive note must stay local"
+      });
+      await startApp({
+        async search(profile) {
+          callCount += 1;
+          seenProfile = profile;
+          return [
+            moodCandidate(moodCase.mood),
+            {
+              ...moodCandidate(moodCase.mood),
+              videoId: `${moodCase.mood}-reaction`,
+              title: `${moodCase.mood} song reaction`
+            }
+          ];
+        }
+      });
+
+      const { response, body } = await postJson("/api/music/suggestions", {
+        moodEntryId: mood.id
+      });
+
+      assert.equal(response.status, 200);
+      assert.equal(callCount, 1);
+      assert.equal(body.profile.mode, "match");
+      assert.equal(body.profile.currentMood, moodCase.mood);
+      assert.equal(body.profile.targetMood, null);
+      assert.equal(body.suggestions.length, 1);
+      assert.equal(body.suggestions[0].videoId, `${moodCase.mood}-official`);
+      assert.equal(body.suggestions.some((item) => item.videoId.endsWith("reaction")), false);
+      assert.ok(moodCase.expectedTerms.some((term) => seenProfile.queryTerms.includes(term)));
+      assert.equal(JSON.stringify(seenProfile).includes("sensitive note"), false);
+      assert.equal(JSON.stringify(body).includes("sensitive note"), false);
+    }
   });
 
   it("uses the 15-minute cache for identical successful searches", async () => {

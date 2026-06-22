@@ -36,10 +36,10 @@ async function showHealthStatus() {
   try {
     const response = await fetch("/api/health");
     statusElement.textContent = response.ok
-      ? "Server status: ok"
-      : "Server status is unavailable.";
+      ? "App status: online"
+      : "App status: offline";
   } catch {
-    statusElement.textContent = "Server status is unavailable.";
+    statusElement.textContent = "App status: offline";
   }
 }
 

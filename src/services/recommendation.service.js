@@ -26,18 +26,21 @@ export const RECOMMENDATION_RULES = {
       transitionTerms: ["comforting", "reflective"]
     },
     anxious: {
-      moodTerms: ["anxious", "tense", "restless"],
-      styleTerms: ["atmospheric", "minimal"],
+      moodTerms: ["anxious", "tense", "uneasy", "nervous", "restless", "suspenseful"],
+      styleTerms: ["dark ambient", "anxious instrumental"],
+      queryTerms: ["anxious", "tense", "uneasy", "nervous", "restless", "suspenseful", "dark ambient", "anxious instrumental"],
       transitionTerms: ["grounding", "steady"]
     },
     angry: {
-      moodTerms: ["angry", "intense", "driving"],
-      styleTerms: ["rock", "alternative"],
+      moodTerms: ["angry", "aggressive", "intense", "furious", "heavy", "cathartic"],
+      styleTerms: ["hard rock", "metal"],
+      queryTerms: ["angry", "aggressive", "intense", "furious", "heavy", "cathartic", "hard rock", "metal"],
       transitionTerms: ["release", "focused"]
     },
     tired: {
-      moodTerms: ["tired", "low energy", "mellow"],
-      styleTerms: ["chill", "downtempo"],
+      moodTerms: ["tired", "weary", "drained", "sleepy", "slow", "low-energy", "mellow"],
+      styleTerms: ["tired mood music"],
+      queryTerms: ["tired", "weary", "drained", "sleepy", "slow", "low-energy", "mellow", "tired mood music"],
       transitionTerms: ["restorative", "easy"]
     },
     focused: {
@@ -220,6 +223,11 @@ export function createRecommendationProfile(input) {
   const styleTerms = isShift
     ? uniqueTerms([...targetMoodRules.styleTerms, "music"])
     : uniqueTerms([...sourceMoodRules.styleTerms, "music"]);
+  const queryTerms = isShift
+    ? null
+    : sourceMoodRules.queryTerms
+      ? uniqueTerms([...sourceMoodRules.queryTerms])
+      : null;
   const reason = isShift
     ? `Selected to move from ${entry.mood} toward ${entry.targetMood} with ${intensityBand.name} intensity and ${energyBand.name} energy.`
     : `Selected to match ${entry.mood} with ${intensityBand.name} intensity and ${energyBand.name} energy.`;
@@ -234,6 +242,7 @@ export function createRecommendationProfile(input) {
     intensityTerms,
     energyTerms,
     styleTerms,
+    queryTerms,
     excludeTerms: [...RECOMMENDATION_RULES.excludeTerms],
     rankingHints: {
       prefer: [...RECOMMENDATION_RULES.rankingHints.prefer],

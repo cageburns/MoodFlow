@@ -227,6 +227,9 @@ describe("recommendation rules", () => {
     for (const term of profile.styleTerms) {
       assert.equal(term.toLowerCase().includes(lowerNote), false);
     }
+    for (const term of profile.queryTerms || []) {
+      assert.equal(term.toLowerCase().includes(lowerNote), false);
+    }
     for (const term of profile.excludeTerms) {
       assert.equal(term.toLowerCase().includes(lowerNote), false);
     }
@@ -236,6 +239,49 @@ describe("recommendation rules", () => {
     for (const term of profile.rankingHints.deprioritize) {
       assert.equal(term.toLowerCase().includes(lowerNote), false);
     }
+  });
+
+  it("uses mood-congruent descriptors for anxious, tired, and angry match profiles", () => {
+    const anxious = createRecommendationProfile({
+      mood: "anxious",
+      intensity: 5,
+      energy: 5,
+      musicMode: "match"
+    });
+    const tired = createRecommendationProfile({
+      mood: "tired",
+      intensity: 5,
+      energy: 5,
+      musicMode: "match"
+    });
+    const angry = createRecommendationProfile({
+      mood: "angry",
+      intensity: 5,
+      energy: 5,
+      musicMode: "match"
+    });
+
+    assert.ok(anxious.moodTerms.some((term) => ["anxious", "tense", "uneasy", "nervous", "restless"].includes(term)));
+    assert.ok(anxious.queryTerms.some((term) => ["anxious", "tense", "dark ambient", "anxious instrumental"].includes(term)));
+    assert.ok(tired.moodTerms.some((term) => ["tired", "slow", "low-energy", "sleepy"].includes(term)));
+    assert.ok(tired.queryTerms.some((term) => ["tired", "slow", "low-energy", "tired mood music"].includes(term)));
+    assert.ok(angry.moodTerms.some((term) => ["angry", "intense", "heavy", "aggressive"].includes(term)));
+    assert.ok(angry.queryTerms.some((term) => ["angry", "intense", "heavy", "hard rock", "metal"].includes(term)));
+  });
+
+  it("keeps shift mode focused on the selected target mood query terms", () => {
+    const shiftProfile = createRecommendationProfile({
+      mood: "angry",
+      intensity: 5,
+      energy: 5,
+      musicMode: "shift",
+      targetMood: "calm"
+    });
+
+    assert.equal(shiftProfile.targetMood, "calm");
+    assert.equal(shiftProfile.queryTerms, null);
+    assert.deepEqual(shiftProfile.moodTerms, RECOMMENDATION_RULES.moods.calm.moodTerms);
+    assert.deepEqual(shiftProfile.styleTerms, [...RECOMMENDATION_RULES.moods.calm.styleTerms, "music"]);
   });
 
   it("returns search-ready terms and ranking hints without external calls", () => {

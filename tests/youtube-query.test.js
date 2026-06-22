@@ -159,4 +159,34 @@ describe("YouTube query and client", () => {
       buildYouTubeSearchQuery(sampleProfile())
     );
   });
+
+  it("uses curated match query descriptors for anxious, tired, and angry", () => {
+    const anxiousQuery = buildYouTubeSearchQuery(createRecommendationProfile({
+      mood: "anxious",
+      intensity: 5,
+      energy: 5,
+      musicMode: "match",
+      note: "private note should never be searched"
+    }));
+    const tiredQuery = buildYouTubeSearchQuery(createRecommendationProfile({
+      mood: "tired",
+      intensity: 5,
+      energy: 5,
+      musicMode: "match"
+    }));
+    const angryQuery = buildYouTubeSearchQuery(createRecommendationProfile({
+      mood: "angry",
+      intensity: 5,
+      energy: 5,
+      musicMode: "match"
+    }));
+
+    assert.match(anxiousQuery, /anxious/);
+    assert.match(anxiousQuery, /tense|dark ambient|anxious instrumental/);
+    assert.match(tiredQuery, /tired/);
+    assert.match(tiredQuery, /slow|low-energy|tired mood music/);
+    assert.match(angryQuery, /angry/);
+    assert.match(angryQuery, /intense|heavy|hard rock|metal/);
+    assert.equal(anxiousQuery.includes("private note"), false);
+  });
 });

@@ -39,13 +39,15 @@ function uniqueTerms(terms) {
 }
 
 export function buildYouTubeSearchQuery(profile) {
-  const positiveTerms = uniqueTerms([
-    ...profile.moodTerms,
-    ...profile.intensityTerms,
-    ...profile.energyTerms,
-    ...profile.styleTerms,
-    "official"
-  ]);
+  const sourceTerms = Array.isArray(profile.queryTerms)
+    ? profile.queryTerms
+    : [
+        ...profile.moodTerms,
+        ...profile.intensityTerms,
+        ...profile.energyTerms,
+        ...profile.styleTerms
+      ];
+  const positiveTerms = uniqueTerms([...sourceTerms, "official"]);
   const negativeTerms = uniqueTerms(profile.excludeTerms).map((term) => `-${term}`);
 
   return [...positiveTerms, ...negativeTerms].join(" ");

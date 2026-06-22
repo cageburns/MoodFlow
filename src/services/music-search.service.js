@@ -30,6 +30,7 @@ function cacheKeyForProfile(profile) {
     intensityTerms: profile.intensityTerms,
     energyTerms: profile.energyTerms,
     styleTerms: profile.styleTerms,
+    queryTerms: profile.queryTerms,
     excludeTerms: profile.excludeTerms
   });
 }

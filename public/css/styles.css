@@ -17,7 +17,7 @@
   --field-border: rgba(224, 206, 255, 0.34);
   --heading-font: "Bricolage Grotesque", "Arial Narrow", "Segoe UI", Arial, sans-serif;
   --body-font: "Space Grotesk", "Segoe UI", Arial, sans-serif;
-  --top-row-height: clamp(700px, 78vh, 780px);
+  --top-row-height: clamp(820px, 84vh, 880px);
 }
 
 html {
@@ -69,6 +69,14 @@ body::after {
 
 [hidden] {
   display: none !important;
+}
+
+/* Keep the target-mood wrapper in layout flow in both modes.
+   Visibility toggles via JS (hidden attribute) without removing it from flow. */
+[data-target-mood-group][hidden] {
+  display: grid !important;
+  visibility: hidden;
+  pointer-events: none;
 }
 
 .app-header,
@@ -206,7 +214,7 @@ h3 {
   grid-template-rows: auto minmax(0, 1fr);
   gap: 22px;
   align-content: start;
-  height: var(--top-row-height);
+  min-height: var(--top-row-height);
   min-width: 0;
 }
 
@@ -229,9 +237,9 @@ h3 {
 }
 
 .mood-card {
-  height: var(--top-row-height);
-  align-content: start;
-  overflow: hidden;
+  min-height: var(--top-row-height);
+  display: flex;
+  flex-direction: column;
 }
 
 @supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
@@ -245,6 +253,8 @@ h3 {
 }
 
 .mood-form,
+.mood-fields,
+.mood-actions,
 .history-controls,
 .history-list,
 .suggestions-list,
@@ -256,6 +266,27 @@ h3 {
 .recent-card {
   display: grid;
   gap: 14px;
+}
+
+.mood-form {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.mood-card {
+  display: flex;
+  flex-direction: column;
+}
+
+.mood-fields {
+  align-content: start;
+}
+
+.mood-actions {
+  margin-top: auto;
+  padding-top: 16px;
 }
 
 .card-heading {
@@ -421,6 +452,28 @@ a:focus-visible {
   max-width: 100%;
   height: 100% !important;
   max-height: 100%;
+}
+
+/* Override the shared `display: grid` rule so the card uses flex.
+   This stops CSS grid from stretch-distributing free height across row
+   tracks, which was pushing the status text into an oversized empty band. */
+.chart-card {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Collapse the history-status paragraph when JS clears it after loading,
+   so it no longer contributes a ghost grid/flex track above the chart status. */
+.chart-card > .status:empty {
+  display: none;
+}
+
+/* Center the chart-status line vertically in whatever space remains between
+   the card header and the chart frame.  Auto margins in flex consume the free
+   space evenly above and below the element without affecting horizontal alignment. */
+#chart-status {
+  margin-top: auto;
+  margin-bottom: auto;
 }
 
 .history-list {

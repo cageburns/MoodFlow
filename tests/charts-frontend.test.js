@@ -93,7 +93,7 @@ describe("Phase 6 chart frontend behavior", () => {
     assert.deepEqual(data.datasets[2].data.map((point) => point.mood), ["happy", "sad"]);
     assert.equal(data.datasets[2].minBarLength, 6);
     assert.equal(data.datasets[2].barPercentage, 0.42);
-    assert.equal(data.datasets[2].backgroundColor, "rgba(91, 95, 151, 0.42)");
+    assert.equal(data.datasets[2].backgroundColor, "rgba(88, 188, 179, 0.58)");
     assert.notEqual(data.datasets[2].data[1].y, null);
   });
 
@@ -116,12 +116,53 @@ describe("Phase 6 chart frontend behavior", () => {
     assert.equal(alphaFromRgba(mood.backgroundColor) > alphaFromRgba(intensity.backgroundColor), true);
     assert.equal(alphaFromRgba(mood.backgroundColor) > alphaFromRgba(energy.backgroundColor), true);
     assert.equal(alphaFromRgba(mood.borderColor) > alphaFromRgba(intensity.borderColor), true);
-    assert.equal(mood.backgroundColor, "rgba(91, 95, 151, 0.42)");
-    assert.equal(mood.borderColor, "rgba(91, 95, 151, 0.86)");
-    assert.equal(intensity.borderColor, "rgba(47, 111, 109, 0.72)");
-    assert.equal(energy.borderColor, "rgba(138, 79, 125, 0.62)");
+    assert.equal(mood.backgroundColor, "rgba(88, 188, 179, 0.58)");
+    assert.equal(mood.borderColor, "rgba(88, 188, 179, 0.94)");
+    assert.equal(intensity.borderColor, "rgba(102, 84, 198, 0.9)");
+    assert.equal(energy.borderColor, "rgba(176, 93, 150, 0.88)");
     assert.equal(intensity.pointRadius, 2);
     assert.equal(energy.pointRadius, 2);
+  });
+
+  it("applies Space Grotesk typography to chart defaults and chart text options", () => {
+    const statusElement = new TestElement("p");
+    const charts = [];
+    class ChartMock {
+      constructor(canvas, config) {
+        this.canvas = canvas;
+        this.config = config;
+        charts.push(this);
+      }
+    }
+    ChartMock.defaults = {
+      font: {
+        family: "Arial"
+      },
+      color: "#000"
+    };
+
+    renderHistoryChart({
+      entries: [
+        {
+          mood: "focused",
+          intensity: 6,
+          energy: 7,
+          createdAt: "2026-06-21T10:00:00.000Z"
+        }
+      ],
+      canvas: new TestElement("canvas"),
+      statusElement,
+      ChartConstructor: ChartMock
+    });
+
+    const options = charts[0].config.options;
+    assert.equal(ChartMock.defaults.font.family, "\"Space Grotesk\", \"Segoe UI\", Arial, sans-serif");
+    assert.equal(options.plugins.legend.labels.font.family, "\"Space Grotesk\", \"Segoe UI\", Arial, sans-serif");
+    assert.equal(options.scales.x.ticks.font.family, "\"Space Grotesk\", \"Segoe UI\", Arial, sans-serif");
+    assert.equal(options.scales.y.ticks.font.family, "\"Space Grotesk\", \"Segoe UI\", Arial, sans-serif");
+    assert.equal(options.scales.mood.ticks.font.family, "\"Space Grotesk\", \"Segoe UI\", Arial, sans-serif");
+    assert.equal(options.plugins.tooltip.titleFont.family, "\"Space Grotesk\", \"Segoe UI\", Arial, sans-serif");
+    assert.equal(options.plugins.tooltip.bodyFont.family, "\"Space Grotesk\", \"Segoe UI\", Arial, sans-serif");
   });
 
   it("renders mood names on the mood axis and in tooltips", () => {

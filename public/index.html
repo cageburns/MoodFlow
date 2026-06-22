@@ -16,8 +16,7 @@
           <p class="app-subtitle">Track and hear your mood</p>
         </div>
         <p id="health-status" class="server-status" role="status">
-          <span aria-hidden="true"></span>
-          Checking server
+          App status: Checking
         </p>
       </div>
     </header>
@@ -31,53 +30,57 @@
               <h2 id="mood-form-title">Log a mood</h2>
             </div>
             <form id="mood-form" class="mood-form">
-              <div class="field">
-                <label for="mood">Current mood</label>
-                <select id="mood" name="mood" required>
-                  <option value="">Choose mood</option>
-                </select>
-              </div>
-
-              <div class="field-grid">
+              <div class="mood-fields">
                 <div class="field">
-                  <label for="intensity">Intensity</label>
-                  <input id="intensity" name="intensity" type="number" min="1" max="10" value="5" required aria-describedby="intensity-help">
-                  <p id="intensity-help" class="field-help">1 is low, 10 is high.</p>
+                  <label for="mood">Current mood</label>
+                  <select id="mood" name="mood" required>
+                    <option value="">Choose mood</option>
+                  </select>
                 </div>
+
+                <div class="field-grid">
+                  <div class="field">
+                    <label for="intensity">Intensity</label>
+                    <input id="intensity" name="intensity" type="number" min="1" max="10" value="5" required aria-describedby="intensity-help">
+                    <p id="intensity-help" class="field-help">1 is low, 10 is high.</p>
+                  </div>
+                  <div class="field">
+                    <label for="energy">Energy</label>
+                    <input id="energy" name="energy" type="number" min="1" max="10" value="5" required aria-describedby="energy-help">
+                    <p id="energy-help" class="field-help">1 is low, 10 is high.</p>
+                  </div>
+                </div>
+
                 <div class="field">
-                  <label for="energy">Energy</label>
-                  <input id="energy" name="energy" type="number" min="1" max="10" value="5" required aria-describedby="energy-help">
-                  <p id="energy-help" class="field-help">1 is low, 10 is high.</p>
+                  <label for="note">Note</label>
+                  <textarea id="note" name="note" maxlength="300" rows="4" aria-describedby="note-help"></textarea>
+                  <p id="note-help" class="field-help">Optional, up to 300 characters. Notes are not sent to YouTube.</p>
+                </div>
+
+                <fieldset class="mode-group">
+                  <legend>Music mode</legend>
+                  <label>
+                    <input type="radio" name="musicMode" value="match" checked>
+                    Match my mood
+                  </label>
+                  <label>
+                    <input type="radio" name="musicMode" value="shift">
+                    Help shift my mood
+                  </label>
+                </fieldset>
+
+                <div class="field" data-target-mood-group hidden>
+                  <label for="targetMood">Target mood</label>
+                  <select id="targetMood" name="targetMood">
+                    <option value="">Choose target mood</option>
+                  </select>
                 </div>
               </div>
 
-              <div class="field">
-                <label for="note">Note</label>
-                <textarea id="note" name="note" maxlength="300" rows="4" aria-describedby="note-help"></textarea>
-                <p id="note-help" class="field-help">Optional, up to 300 characters. Notes are not sent to YouTube.</p>
+              <div class="mood-actions">
+                <button type="submit">Save mood &amp; suggest music</button>
+                <p id="form-status" class="status" role="status"></p>
               </div>
-
-              <fieldset class="mode-group">
-                <legend>Music mode</legend>
-                <label>
-                  <input type="radio" name="musicMode" value="match" checked>
-                  Match my mood
-                </label>
-                <label>
-                  <input type="radio" name="musicMode" value="shift">
-                  Help shift my mood
-                </label>
-              </fieldset>
-
-              <div class="field" data-target-mood-group hidden>
-                <label for="targetMood">Target mood</label>
-                <select id="targetMood" name="targetMood">
-                  <option value="">Choose target mood</option>
-                </select>
-              </div>
-
-              <button type="submit">Save mood &amp; suggest music</button>
-              <p id="form-status" class="status" role="status"></p>
             </form>
           </section>
 

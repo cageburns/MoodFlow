@@ -60,7 +60,8 @@ describe("structural dashboard layout CSS", () => {
     assert.match(musicBlock, /height:\s*var\(--top-row-height\)/);
     assert.match(musicBlock, /gap:\s*22px/);
     assert.match(moodBlock, /height:\s*var\(--top-row-height\)/);
-    assert.match(moodBlock, /align-content:\s*start/);
+    assert.match(moodBlock, /display:\s*flex/);
+    assert.match(moodBlock, /flex-direction:\s*column/);
     assert.match(historyBlock, /display:\s*grid/);
     assert.match(historyBlock, /grid-template-columns:\s*minmax\(0,\s*7fr\)\s*minmax\(280px,\s*3fr\)/);
   });
@@ -114,5 +115,19 @@ describe("structural dashboard layout CSS", () => {
     assert.match(headerBlock, /align-items:\s*center/);
     assert.match(dateBlock, /grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\)/);
     assert.match(dateBlock, /gap:\s*14px/);
+  });
+
+  it("anchors the mood form action footer inside the stable card", () => {
+    const moodFormBlock = blockFor(".mood-form");
+    const actionsBlock = blockFor(".mood-actions");
+    const fieldsBlock = blockFor(".mood-fields");
+
+    assert.match(html, /<div class="mood-fields">[\s\S]*<div class="mood-actions">/);
+    assert.match(moodFormBlock, /display:\s*flex/);
+    assert.match(moodFormBlock, /flex-direction:\s*column/);
+    assert.match(moodFormBlock, /flex:\s*1/);
+    assert.match(fieldsBlock, /align-content:\s*start/);
+    assert.match(actionsBlock, /margin-top:\s*auto/);
+    assert.match(actionsBlock, /padding-top:\s*16px/);
   });
 });
